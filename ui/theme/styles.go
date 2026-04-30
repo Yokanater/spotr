@@ -12,9 +12,12 @@ type Styles struct {
 func NewStyles (t Theme, h int, w int) Styles {
 	newStyles := Styles{
 		Opener: lipgloss.NewStyle().
-			Foreground(t.Foreground).
-			Background(t.Background),
+			Width(w).
+			Foreground(t.Accent).
+			Background(t.Background).
+			Align(lipgloss.Center),
 		Box: lipgloss.NewStyle().
+			Background(t.Background).
 			Width(w).
 			Height(h),
 	}

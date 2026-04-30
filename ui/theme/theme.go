@@ -31,8 +31,9 @@ type Theme struct {
 
 func Default () Theme {
 	defaultTheme := Theme{
-		Background: lipgloss.Color("#000000"),
+		Background: lipgloss.Color("#111111"),
 		Foreground: lipgloss.Color("#0000ff"),
+		Accent: lipgloss.Color("#5fd8d0"),
 		Text: lipgloss.Color("#db386e"),
 	}
 	return defaultTheme
