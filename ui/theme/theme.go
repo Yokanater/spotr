@@ -2,6 +2,8 @@ package theme
 
 import (
 	"image/color"
+
+	"charm.land/lipgloss/v2"
 )
 
 type Theme struct {
@@ -25,4 +27,13 @@ type Theme struct {
 	Radius int
 	PadX int
 	PadY int
+}
+
+func Default () Theme {
+	defaultTheme := Theme{
+		Background: lipgloss.Color("#000000"),
+		Foreground: lipgloss.Color("#0000ff"),
+		Text: lipgloss.Color("#db386e"),
+	}
+	return defaultTheme
 }
