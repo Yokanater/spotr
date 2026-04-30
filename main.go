@@ -4,7 +4,10 @@ import (
 	"fmt"
 	"os"
 	"ruffnut/ui/screens"
+	"ruffnut/ui/theme"
+
 	tea "charm.land/bubbletea/v2"
+	"charm.land/lipgloss/v2"
 )
 
 func main() {
@@ -16,10 +19,24 @@ func main() {
 
 type model struct {
 	quitting bool
+	maxH int
+	maxW int
+	appH int
+	appW int
+	termH int
+	termW int
+	styles theme.Styles
 }
 
 func initialModel() model {
-	return model{}
+	return model{
+		maxW: 100,
+		maxH: 30,
+		appW: 100,
+		appH: 30,
+		styles: theme.NewStyles(theme.Default(), 100, 30),
+
+	}
 }
 
 func (m model) Init() tea.Cmd {
@@ -27,10 +44,18 @@ func (m model) Init() tea.Cmd {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if msg, ok := msg.(tea.KeyPressMsg); ok {
+	switch msg := msg.(type) {
+
+	case tea.WindowSizeMsg:
+		m.termW = msg.Width
+		m.termH = msg.Height
+		m.appW = min(m.termW, m.maxW)
+		m.appH = min(m.termH, m.maxH)
+		m.styles = theme.NewStyles(theme.Default(), m.appH, m.appW)
+
+	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
-			m.quitting = true
 			return m, tea.Quit
 		}
 	}
@@ -38,9 +63,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 func (m model) View() tea.View {
-	if m.quitting {
-		return tea.NewView("bye\n")
+	if (m.quitting) {
+		return tea.NewView("bye bye")
 	}
-	homeView := screens.HomeView()
-	return homeView
+	box := m.styles.Box.Render(screens.HomeView(m.styles))
+	v := tea.NewView(lipgloss.Place(m.termW, m.termH, lipgloss.Center, lipgloss.Center, box))
+	v.AltScreen = true
+	return v
 }

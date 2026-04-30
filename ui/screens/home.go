@@ -1,18 +1,8 @@
 package screens
 
 import (
-	tea "charm.land/bubbletea/v2"
 	"ruffnut/ui/theme"
 )
-
-
-type model struct {
-
-}
-
-func main () {
-
-}
 
 var logo string = `
 '        ____  __  _______________   ____  ________
@@ -24,9 +14,7 @@ var logo string = `
 	
 	`   
 
-func HomeView () tea.View {
-	styles := theme.NewStyles(theme.Default())
+func HomeView (styles theme.Styles) string {
 	s := styles.Opener.Render(logo)
-	v := tea.NewView(s)
-	return v
+	return s
 }
