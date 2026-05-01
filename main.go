@@ -34,17 +34,19 @@ type model struct {
 func initialModel() model {
 	ti := textinput.New()
 	ti.Placeholder = "Type something..."
-	ti.SetWidth(100 - 2)
+	ti.SetWidth(utils.DefaultStruct.W)
 	ti.CharLimit = 128
 	ti.Focus()
+	s := ti.Styles()
+	s.Focused.Placeholder = s.Focused.Placeholder.Foreground(lipgloss.Color("#0000ff"))
+	ti.SetStyles(s)
 	return model{
-		maxW:   1000,
-		maxH:   300,
-		appW:   100,
-		appH:   30,
-		styles: theme.NewStyles(theme.Default(), 100, 30),
-		input: ti,
-		
+		maxW:   utils.DefaultStruct.MaxW,
+		maxH:   utils.DefaultStruct.MaxH,
+		appW:   utils.DefaultStruct.W,
+		appH:   utils.DefaultStruct.H,
+		styles: theme.NewStyles(theme.Default(), utils.DefaultStruct.MaxW, utils.DefaultStruct.MaxH),
+		input: ti,	
 	}
 }
 
@@ -59,9 +61,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.termW = msg.Width
 		m.termH = msg.Height
 		m.appW = min(m.termW - 1, m.maxW)
-		m.appH = min(m.termH - 1, m.maxH)
-		m.styles = theme.NewStyles(theme.Default(), m.appH, m.appW)
-
+		m.appH = min(m.termH, m.maxH)
+		m.styles = theme.NewStyles(theme.Default(), m.appW, m.appH)
+		m.input.SetWidth(m.appW)
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
@@ -76,9 +78,10 @@ func (m model) View() tea.View {
 	if m.quitting {
 		return tea.NewView("bye bye")
 	}
-	join := lipgloss.JoinVertical(lipgloss.Center,screens.HomeView(m.styles), m.input.View())
+	raw := m.input.View()
+	boxed := m.styles.Input.Render(raw)
+	join := lipgloss.JoinVertical(lipgloss.Center,screens.HomeView(m.styles), boxed)
 	box := m.styles.Box.Render(join)
-	
 	v := tea.NewView(
 		utils.CenterPlace(m.appW, m.appH, box),
 	)

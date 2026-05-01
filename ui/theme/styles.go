@@ -7,19 +7,26 @@ import (
 type Styles struct {
 	Opener lipgloss.Style
 	Box lipgloss.Style
+	Input lipgloss.Style
 }
 
-func NewStyles (t Theme, h int, w int) Styles {
+func NewStyles (t Theme, w int, h int) Styles {
 	newStyles := Styles{
 		Opener: lipgloss.NewStyle().
+			Align(lipgloss.Center).
 			Width(w).
 			Foreground(t.Accent).
-			Background(t.Background).
-			Align(lipgloss.Center),
+			Background(t.Background),
 		Box: lipgloss.NewStyle().
 			Background(t.Background).
 			Width(w).
 			Height(h),
+		Input: lipgloss.NewStyle().
+			Width(w).
+			Height(10).
+			Align(lipgloss.Center).
+			Background(t.Accent).
+			Foreground(t.Background),
 	}
 	return newStyles
 }
