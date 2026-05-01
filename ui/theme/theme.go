@@ -27,6 +27,7 @@ type Theme struct {
 	Radius int
 	PadX int
 	PadY int
+	InputMax int
 }
 
 func Default () Theme {
@@ -35,6 +36,8 @@ func Default () Theme {
 		Foreground: lipgloss.Color("#0000ff"),
 		Accent: lipgloss.Color("#5fd8d0"),
 		Text: lipgloss.Color("#db386e"),
+		InputMax: 88,
+		PadX: 8,
 	}
 	return defaultTheme
 }

@@ -22,9 +22,10 @@ func NewStyles (t Theme, w int, h int) Styles {
 			Width(w).
 			Height(h),
 		Input: lipgloss.NewStyle().
-			Width(w).
-			Height(10).
+			Width(min(t.InputMax, w - t.PadX)).
+			Height(3).
 			Align(lipgloss.Center).
+			AlignVertical(lipgloss.Center).
 			Background(t.Accent).
 			Foreground(t.Background),
 	}

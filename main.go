@@ -27,6 +27,7 @@ type model struct {
 	appW     int
 	termH    int
 	termW    int
+	theme 	theme.Theme
 	styles   theme.Styles
 	input textinput.Model
 }
@@ -34,18 +35,17 @@ type model struct {
 func initialModel() model {
 	ti := textinput.New()
 	ti.Placeholder = "Type something..."
-	ti.SetWidth(utils.DefaultStruct.W)
+	t := theme.Default()
+	ti.SetWidth(t.InputMax)
 	ti.CharLimit = 128
 	ti.Focus()
-	s := ti.Styles()
-	s.Focused.Placeholder = s.Focused.Placeholder.Foreground(lipgloss.Color("#0000ff"))
-	ti.SetStyles(s)
 	return model{
 		maxW:   utils.DefaultStruct.MaxW,
 		maxH:   utils.DefaultStruct.MaxH,
 		appW:   utils.DefaultStruct.W,
 		appH:   utils.DefaultStruct.H,
-		styles: theme.NewStyles(theme.Default(), utils.DefaultStruct.MaxW, utils.DefaultStruct.MaxH),
+		theme: t,
+		styles: theme.NewStyles(t, utils.DefaultStruct.MaxW, utils.DefaultStruct.MaxH),
 		input: ti,	
 	}
 }
@@ -60,10 +60,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.termW = msg.Width
 		m.termH = msg.Height
-		m.appW = min(m.termW - 1, m.maxW)
+		m.appW = min(m.termW, m.maxW)
 		m.appH = min(m.termH, m.maxH)
-		m.styles = theme.NewStyles(theme.Default(), m.appW, m.appH)
-		m.input.SetWidth(m.appW)
+		m.styles = theme.NewStyles(m.theme, m.appW, m.appH)
+		m.input.SetWidth(min(m.theme.InputMax,  m.appW - theme.Default().PadX))
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
@@ -83,8 +83,9 @@ func (m model) View() tea.View {
 	join := lipgloss.JoinVertical(lipgloss.Center,screens.HomeView(m.styles), boxed)
 	box := m.styles.Box.Render(join)
 	v := tea.NewView(
-		utils.CenterPlace(m.appW, m.appH, box),
+		utils.CenterPlace(m.termW, m.termH, box),
 	)
+	v.BackgroundColor = m.theme.Background
 	v.AltScreen = true
 	return v
 } 
