@@ -18,7 +18,6 @@ func NewStyles (t Theme, w int, h int) Styles {
 			Foreground(t.Accent).
 			Background(t.Background),
 		Box: lipgloss.NewStyle().
-			Background(t.Background).
 			Width(w).
 			Height(h),
 		Input: lipgloss.NewStyle().

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"ruffnut/store"
 	"ruffnut/ui/screens"
 	"ruffnut/ui/theme"
 	"ruffnut/ui/utils"
@@ -13,7 +14,14 @@ import (
 )
 
 func main() {
-	if _, err := tea.NewProgram(initialModel()).Run(); err != nil {
+	st, err := store.NewSQLite("ruffnut.db")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "ruffnut: open db: %v\n", err)
+		os.Exit(1)
+	}
+	defer st.Close()
+
+	if _, err := tea.NewProgram(initialModel(st)).Run(); err != nil {
 		fmt.Fprintf(os.Stderr, "ruffnut: %v\n", err)
 		os.Exit(1)
 	}
@@ -27,12 +35,13 @@ type model struct {
 	appW     int
 	termH    int
 	termW    int
-	theme 	theme.Theme
+	theme    theme.Theme
 	styles   theme.Styles
-	input textinput.Model
+	input    textinput.Model
+	store    *store.Store
 }
 
-func initialModel() model {
+func initialModel(st *store.Store) model {
 	ti := textinput.New()
 	ti.Placeholder = "Type something..."
 	t := theme.Default()
@@ -44,9 +53,10 @@ func initialModel() model {
 		maxH:   utils.DefaultStruct.MaxH,
 		appW:   utils.DefaultStruct.W,
 		appH:   utils.DefaultStruct.H,
-		theme: t,
+		theme:  t,
 		styles: theme.NewStyles(t, utils.DefaultStruct.MaxW, utils.DefaultStruct.MaxH),
-		input: ti,	
+		input:  ti,
+		store:  st,
 	}
 }
 
@@ -63,7 +73,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.appW = min(m.termW, m.maxW)
 		m.appH = min(m.termH, m.maxH)
 		m.styles = theme.NewStyles(m.theme, m.appW, m.appH)
-		m.input.SetWidth(min(m.theme.InputMax,  m.appW - theme.Default().PadX))
+		m.input.SetWidth(min(m.theme.InputMax, m.appW-theme.Default().PadX))
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "ctrl+c", "q", "esc":
@@ -80,7 +90,7 @@ func (m model) View() tea.View {
 	}
 	raw := m.input.View()
 	boxed := m.styles.Input.Render(raw)
-	join := lipgloss.JoinVertical(lipgloss.Center,screens.HomeView(m.styles), boxed)
+	join := lipgloss.JoinVertical(lipgloss.Center, screens.HomeView(m.styles), boxed)
 	box := m.styles.Box.Render(join)
 	v := tea.NewView(
 		utils.CenterPlace(m.termW, m.termH, box),
@@ -88,6 +98,4 @@ func (m model) View() tea.View {
 	v.BackgroundColor = m.theme.Background
 	v.AltScreen = true
 	return v
-} 
-
-
+}
