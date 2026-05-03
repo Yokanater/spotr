@@ -43,7 +43,7 @@ func (s *Store) init() error {
 	if _, err := s.db.Exec(`PRAGMA foreign_keys = ON;`); err != nil {
 		return err
 	}
-	
+
 	_, err := s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS schema_version (
 			version INTEGER NOT NULL
