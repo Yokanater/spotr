@@ -3,10 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
+	"ruffnut/commands"
 	"ruffnut/store"
 	"ruffnut/ui/screens"
 	"ruffnut/ui/theme"
 	"ruffnut/ui/utils"
+	"strings"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -39,6 +41,7 @@ type model struct {
 	styles   theme.Styles
 	input    textinput.Model
 	store    *store.Store
+	status string
 }
 
 func initialModel(st *store.Store) model {
@@ -57,6 +60,7 @@ func initialModel(st *store.Store) model {
 		styles: theme.NewStyles(t, utils.DefaultStruct.MaxW, utils.DefaultStruct.MaxH),
 		input:  ti,
 		store:  st,
+		status: "",
 	}
 }
 
@@ -73,10 +77,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.appW = min(m.termW, m.maxW)
 		m.appH = min(m.termH, m.maxH)
 		m.styles = theme.NewStyles(m.theme, m.appW, m.appH)
-		m.input.SetWidth(min(m.theme.InputMax, m.appW-theme.Default().PadX))
+		m.input.SetWidth(min(m.theme.InputMax, m.appW-m.theme.PadX))
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "ctrl+c", "q", "esc":
+		case "enter": {
+			line := strings.TrimSpace(m.input.Value())
+			m.input.SetValue("")
+			if line == "" {
+				break
+			}
+			command := commands.Parse(line)
+			if command.Cmd == "quit" {
+				return m, tea.Quit
+			}
+		}
+		case "ctrl+c", "esc":
 			return m, tea.Quit
 		}
 	}
