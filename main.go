@@ -37,10 +37,11 @@ type model struct {
 	termH    int
 	termW    int
 	theme    theme.Theme
+	screen   string
 	styles   theme.Styles
 	input    textinput.Model
 	store    *store.Store
-	status string
+	status   string
 }
 
 func initialModel(st *store.Store) model {
@@ -59,6 +60,7 @@ func initialModel(st *store.Store) model {
 		styles: theme.NewStyles(t, utils.DefaultStruct.MaxW, utils.DefaultStruct.MaxH),
 		input:  ti,
 		store:  st,
+		screen: "home",
 		status: "hello everything good and great rn",
 	}
 }
@@ -96,9 +98,14 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.status = fmt.Sprintf("Command not defined: %v", resolved)
 				return m, cmd
 			}
+			switch resolved {
 
-			if resolved == "quit" {
+			case "quit":
 				return m, tea.Quit
+
+			case "help":
+				m.screen = "help"
+				return m, cmd
 			}
 		}
 		case "ctrl+c", "esc":
@@ -113,10 +120,20 @@ func (m model) View() tea.View {
 	if m.quitting {
 		return tea.NewView("bye bye")
 	}
+
 	rawInput := m.input.View()
 	input := m.styles.Input.Render(rawInput)
 	status := m.styles.Status.Render(m.status)
-	join := lipgloss.JoinVertical(lipgloss.Center, screens.HomeView(m.styles), input, status)
+	screen := ""
+	switch m.screen {
+	case "home":
+		screen = screens.HomeView(m.styles)
+	
+	case "help":
+		screen = screens.HelpView(m.styles)
+	} 
+
+	join := lipgloss.JoinVertical(lipgloss.Center, screen, input, status)
 	box := m.styles.Box.Render(join)
 	v := tea.NewView(
 		utils.CenterPlace(m.termW, m.termH, box),

@@ -9,6 +9,7 @@ type Styles struct {
 	Box lipgloss.Style
 	Input lipgloss.Style
 	Status lipgloss.Style
+	Help lipgloss.Style
 }
 
 func NewStyles (t Theme, w int, h int) Styles {
@@ -39,6 +40,8 @@ func NewStyles (t Theme, w int, h int) Styles {
 			Foreground(t.Highlight).
 			Width(min(t.InputMax, w - t.PadX)).
 			Align(lipgloss.Left),
+		
+		Help: lipgloss.NewStyle(),
 	}
 	return newStyles
 }
