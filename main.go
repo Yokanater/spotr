@@ -8,7 +8,6 @@ import (
 	"ruffnut/ui/screens"
 	"ruffnut/ui/theme"
 	"ruffnut/ui/utils"
-	"strings"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -81,13 +80,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch msg.String() {
 		case "enter": {
-			line := strings.TrimSpace(m.input.Value())
+			line := m.input.Value()
 			m.input.SetValue("")
 			if line == "" {
 				break
 			}
-			command := commands.Parse(line)
-			if command.Cmd == "quit" {
+			command, ok := commands.Parse(line)
+			if (!ok) {
+				m.status = "error parsing command"
+				return m, cmd
+			}
+			resolved, status := commands.Resolve(command)
+			
+			if (!status){
+				m.status = fmt.Sprintf("Command not defined: %v", resolved)
+				return m, cmd
+			}
+
+			if resolved == "quit" {
 				return m, tea.Quit
 			}
 		}
