@@ -59,7 +59,7 @@ func initialModel(st *store.Store) model {
 		styles: theme.NewStyles(t, utils.DefaultStruct.MaxW, utils.DefaultStruct.MaxH),
 		input:  ti,
 		store:  st,
-		status: "",
+		status: "hello everything good and great rn",
 	}
 }
 
@@ -113,9 +113,10 @@ func (m model) View() tea.View {
 	if m.quitting {
 		return tea.NewView("bye bye")
 	}
-	raw := m.input.View()
-	boxed := m.styles.Input.Render(raw)
-	join := lipgloss.JoinVertical(lipgloss.Center, screens.HomeView(m.styles), boxed)
+	rawInput := m.input.View()
+	input := m.styles.Input.Render(rawInput)
+	status := m.styles.Status.Render(m.status)
+	join := lipgloss.JoinVertical(lipgloss.Center, screens.HomeView(m.styles), input, status)
 	box := m.styles.Box.Render(join)
 	v := tea.NewView(
 		utils.CenterPlace(m.termW, m.termH, box),

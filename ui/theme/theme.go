@@ -22,7 +22,7 @@ type Theme struct {
 	// frames
 	Border color.Color
 	Divider color.Color
-
+	Highlight color.Color
 	// layout
 	Radius int
 	PadX int
@@ -33,6 +33,7 @@ type Theme struct {
 func Default () Theme {
 	defaultTheme := Theme{
 		Background: lipgloss.Color("#111111"),
+		Highlight: 	lipgloss.Color("#565656"),
 		Foreground: lipgloss.Color("#000fff"),
 		Accent: lipgloss.Color("#5fd8d0"),
 		Text: lipgloss.Color("#db386e"),
