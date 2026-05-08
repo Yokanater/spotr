@@ -65,3 +65,5 @@ var AliasToCanonical = map[string]string{
 	"l":    "log",
 	"hist": "history",
 }
+
+var CommandsOrder = []string{"help", "program", "workout", "log", "history", "quit"};

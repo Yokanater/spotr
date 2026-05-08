@@ -10,7 +10,9 @@ import (
 func HelpView (styles theme.Styles) string {
 	help := ""
 	registry := commands.Registry
-	for _ , v := range registry {
+	order := commands.CommandsOrder
+	for i := range order {
+		v := registry[order[i]]
 		str := fmt.Sprintf("%v: %v \n", v.Name, v.Summary)
 		help += str
 	}
