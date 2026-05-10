@@ -153,12 +153,23 @@ func (m model) View() tea.View {
 }
 
 func (m *model) handleProgram (args []string) {
-	if args[0] == "list" {
+	cmd := args[0]
+	switch cmd {
+	case "list":
 		programs, err := m.store.ListPrograms()
 		if err != nil {
 			m.status = err.Error()
 		}
 		m.programs = programs
+	
+	case "add":
+		err := m.store.CreateProgram(args[1])
+		if err != nil {
+			m.status = err.Error()
+		}
+		m.programs = append(m.programs, args[1])
+		m.status = "Created program"
 	}
+	
 	m.screen = "program"
 }
