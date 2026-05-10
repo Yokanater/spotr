@@ -49,5 +49,16 @@ func (s *Store) init() error {
 			version INTEGER NOT NULL
 		);
 	`)
+
+	if _, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS program(
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			name TEXT NOT NULL UNIQUE,
+			created_at TEXT NOT NULL
+		);`); 
+		err != nil {
+		return err
+	}
+
 	return err
 }
