@@ -51,7 +51,7 @@ func (s *Store) init() error {
 	`)
 
 	if _, err = s.db.Exec(`
-		CREATE TABLE IF NOT EXISTS program (
+		CREATE TABLE IF NOT EXISTS programs (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL UNIQUE,
 			created_at TEXT NOT NULL
@@ -65,8 +65,7 @@ func (s *Store) init() error {
 
 func (s *Store) CreateProgram(name string) error {
 	date := time.Now().UTC().Format(time.RFC3339)
-	cmd := fmt.Sprintf("INSERT INTO program VALUES (%v, %v)", name, date)
-	_, err := s.db.Exec(cmd)
+	_, err := s.db.Exec("INSERT INTO programs (name, created_at) VALUES (?, ?)", name, date)
 	if err != nil {
 		return err
 	}
@@ -74,20 +73,29 @@ func (s *Store) CreateProgram(name string) error {
 }
 
 func (s *Store) ListPrograms() ([]string, error) {
-	rows, err := s.db.Query("SELECT * FROM program")
-	programs := []string{};
+	programs := []string{}
+
+	rows, err := s.db.Query("SELECT name FROM programs ORDER BY name")
+
+	if err != nil {
+		return programs, err
+	}
+	defer rows.Close()
+
 	for rows.Next() {
-		var id int;
 		var name string;
-		var createdAt string;
-		err := rows.Scan(&id, &name, &createdAt)
+
+		err := rows.Scan(&name)
+
 		if err != nil {
-			return programs, nil
+			return programs, err
 		}
 		programs = append(programs, name)
 	}
+
+	err = rows.Err()
 	if err != nil {
-		return programs, nil
+		return programs, err
 	}
 	return programs, nil
 }
