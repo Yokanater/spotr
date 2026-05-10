@@ -42,6 +42,7 @@ type model struct {
 	input    textinput.Model
 	store    *store.Store
 	status   string
+	programs []string
 }
 
 func initialModel(st *store.Store) model {
@@ -99,10 +100,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				return m, cmd
 			}
 			switch resolved {
-
-			case "quit":
-				return m, tea.Quit
-
+			case "program":
+				m.handleProgram(command.Args)
 			case "help":
 				m.screen = "help"
 				return m, cmd
@@ -110,6 +109,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "home":
 				m.screen = "home"
 				return m, cmd
+			
+			case "quit":
+				return m, tea.Quit
 			}
 		}
 		case "ctrl+c", "esc":
@@ -135,6 +137,9 @@ func (m model) View() tea.View {
 	
 	case "help":
 		screen = screens.HelpView(m.styles)
+	
+	case "program":
+		screen = screens.ProgramView(m.styles, m.programs)
 	} 
 
 	join := lipgloss.JoinVertical(lipgloss.Center, screen, input, status)
@@ -145,4 +150,15 @@ func (m model) View() tea.View {
 	v.BackgroundColor = m.theme.Background
 	v.AltScreen = true
 	return v
+}
+
+func (m *model) handleProgram (args []string) {
+	if args[0] == "list" {
+		programs, err := m.store.ListPrograms()
+		if err != nil {
+			m.status = err.Error()
+		}
+		m.programs = programs
+	}
+	m.screen = "program"
 }
