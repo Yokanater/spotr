@@ -106,6 +106,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			case "help":
 				m.screen = "help"
 				return m, cmd
+			
+			case "home":
+				m.screen = "home"
+				return m, cmd
 			}
 		}
 		case "ctrl+c", "esc":

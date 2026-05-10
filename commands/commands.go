@@ -17,6 +17,12 @@ type Spec struct {
 }
 
 var Registry = map[string]Spec{
+	"home": {
+		Name:    "home",
+		Aliases: []string{"~"},
+		Usage:   "home",
+		Summary: "navigate to home screen",
+	},
 	"help": {
 		Name:    "help",
 		Aliases: []string{"h", "?"},
@@ -64,6 +70,7 @@ var AliasToCanonical = map[string]string{
 	"w":    "workout",
 	"l":    "log",
 	"hist": "history",
+	"~": "home",
 }
 
-var CommandsOrder = []string{"help", "program", "workout", "log", "history", "quit"};
+var CommandsOrder = []string{"help", "home", "program", "workout", "log", "history", "quit"};
