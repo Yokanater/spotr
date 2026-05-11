@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"ruffnut/commands"
+	"ruffnut/data"
 	"ruffnut/store"
 	"ruffnut/ui/screens"
 	"ruffnut/ui/theme"
@@ -43,6 +44,7 @@ type model struct {
 	store    *store.Store
 	status   string
 	programs []string
+	activeProgram data.Program
 }
 
 func initialModel(st *store.Store) model {
@@ -169,6 +171,9 @@ func (m *model) handleProgram (args []string) {
 		}
 		m.programs = append(m.programs, args[1])
 		m.status = "Created program"
+
+	case "select":
+		
 	}
 	
 	m.screen = "program"

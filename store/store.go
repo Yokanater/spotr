@@ -3,7 +3,10 @@ package store
 import (
 	"database/sql"
 	"fmt"
+	"ruffnut/data"
+	"ruffnut/utils"
 	"time"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -98,4 +101,11 @@ func (s *Store) ListPrograms() ([]string, error) {
 		return programs, err
 	}
 	return programs, nil
+}
+
+
+func (s *Store) SelectProgram(arg string) (data.Program, error) {
+	if utils.DigitCheck.MatchString(arg) {
+		
+	}
 }
