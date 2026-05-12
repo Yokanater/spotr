@@ -105,7 +105,22 @@ func (s *Store) ListPrograms() ([]string, error) {
 
 
 func (s *Store) SelectProgram(arg string) (data.Program, error) {
+	var progId int64 = 0
+	var progName string = ""
 	if utils.DigitCheck.MatchString(arg) {
-		
+		err := s.db.QueryRow(`SELECT id, name FROM programs WHERE id = ?`, arg).Scan(&progId, &progName)
+		if err != nil {
+			return data.Program{}, err
+		}
+		program := data.Program{ProgramId: progId, ProgramName: progName}
+		return program, err
 	}
+	err := s.db.QueryRow(`SELECT id, name FROM programs WHERE name = ?`, arg).Scan(&progId, &progName)
+	
+	if err != nil {
+		return data.Program{}, err
+	}
+	
+	program := data.Program{ProgramId: progId, ProgramName: progName}
+	return program, err
 }

@@ -1,6 +1,6 @@
 package data
 
 type Program struct {
-	programId int64
-	programName string
+	ProgramId int64
+	ProgramName string
 }

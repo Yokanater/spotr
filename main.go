@@ -155,26 +155,51 @@ func (m model) View() tea.View {
 }
 
 func (m *model) handleProgram (args []string) {
+	if len(args) == 0 {
+		m.status = "usage: program <list|add|select> ..."
+		return
+	}
+
 	cmd := args[0]
+	m.screen = "program"
 	switch cmd {
 	case "list":
 		programs, err := m.store.ListPrograms()
 		if err != nil {
 			m.status = err.Error()
+			return
 		}
 		m.programs = programs
 	
 	case "add":
+		if len(args) < 2 {
+			m.status = "usage: program add <name>"
+			return
+		}
+
 		err := m.store.CreateProgram(args[1])
 		if err != nil {
 			m.status = err.Error()
+			return
 		}
 		m.programs = append(m.programs, args[1])
 		m.status = "Created program"
 
 	case "select":
-		
+		if len(args) < 2 {
+			m.status = "usage: program select <id|name>"
+			return
+		}
+
+		program, err := m.store.SelectProgram(args[1])
+		if err != nil {
+			m.status = err.Error()
+			return 
+		}
+		m.activeProgram = program
+		m.status = "Selected program" + program.ProgramName
+
+	default:
+		m.status = fmt.Sprintf("unknown program command: %s", cmd)
 	}
-	
-	m.screen = "program"
 }
