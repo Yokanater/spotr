@@ -104,6 +104,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			switch resolved {
 			case "program":
 				m.handleProgram(command.Args)
+
+			case "workout":
+				m.handleWorkout(command.Args)
+				return m, cmd
 			case "help":
 				m.screen = "help"
 				return m, cmd
@@ -142,8 +146,8 @@ func (m model) View() tea.View {
 	
 	case "program":
 		screen = screens.ProgramView(m.styles, m.programs)
-	} 
 
+	}
 	join := lipgloss.JoinVertical(lipgloss.Center, screen, input, status)
 	box := m.styles.Box.Render(join)
 	v := tea.NewView(
@@ -202,4 +206,8 @@ func (m *model) handleProgram (args []string) {
 	default:
 		m.status = fmt.Sprintf("unknown program command: %s", cmd)
 	}
+}
+
+func (m *model) handleWorkout (args []string) {
+
 }

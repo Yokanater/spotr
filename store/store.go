@@ -63,6 +63,18 @@ func (s *Store) init() error {
 		return err
 	}
 
+	if _, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS workouts (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			program_id REFERENCES programs(id),
+			name TEXT NOT NULL UNIQUE,
+			created_at TEXT NOT NULL
+		);`); 
+
+		err != nil {
+		return err
+	}
+
 	return err
 }
 
@@ -120,7 +132,7 @@ func (s *Store) SelectProgram(arg string) (data.Program, error) {
 	if err != nil {
 		return data.Program{}, err
 	}
-	
+
 	program := data.Program{ProgramId: progId, ProgramName: progName}
 	return program, err
 }
