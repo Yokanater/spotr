@@ -209,5 +209,8 @@ func (m *model) handleProgram (args []string) {
 }
 
 func (m *model) handleWorkout (args []string) {
-
+	if len(args) == 0 {
+		m.status = "usage: program <list|add|select> ..."
+		return
+	}
 }
