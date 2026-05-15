@@ -58,8 +58,7 @@ func (s *Store) init() error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			name TEXT NOT NULL UNIQUE,
 			created_at TEXT NOT NULL
-		);`); 
-		err != nil {
+		);`); err != nil {
 		return err
 	}
 
@@ -69,9 +68,7 @@ func (s *Store) init() error {
 			program_id REFERENCES programs(id),
 			name TEXT NOT NULL UNIQUE,
 			created_at TEXT NOT NULL
-		);`); 
-
-		err != nil {
+		);`); err != nil {
 		return err
 	}
 
@@ -98,7 +95,7 @@ func (s *Store) ListPrograms() ([]string, error) {
 	defer rows.Close()
 
 	for rows.Next() {
-		var name string;
+		var name string
 
 		err := rows.Scan(&name)
 
@@ -115,7 +112,6 @@ func (s *Store) ListPrograms() ([]string, error) {
 	return programs, nil
 }
 
-
 func (s *Store) SelectProgram(arg string) (data.Program, error) {
 	var progId int64 = 0
 	var progName string = ""
@@ -128,7 +124,7 @@ func (s *Store) SelectProgram(arg string) (data.Program, error) {
 		return program, err
 	}
 	err := s.db.QueryRow(`SELECT id, name FROM programs WHERE name = ?`, arg).Scan(&progId, &progName)
-	
+
 	if err != nil {
 		return data.Program{}, err
 	}

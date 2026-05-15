@@ -12,7 +12,7 @@ type Theme struct {
 	Foreground color.Color
 
 	// text
-	Text color.Color
+	Text      color.Color
 	TextMuted color.Color
 	TextFaint color.Color
 
@@ -20,25 +20,25 @@ type Theme struct {
 	Accent color.Color
 
 	// frames
-	Border color.Color
-	Divider color.Color
+	Border    color.Color
+	Divider   color.Color
 	Highlight color.Color
 	// layout
-	Radius int
-	PadX int
-	PadY int
+	Radius   int
+	PadX     int
+	PadY     int
 	InputMax int
 }
 
-func Default () Theme {
+func Default() Theme {
 	defaultTheme := Theme{
 		Background: lipgloss.Color("#111111"),
-		Highlight: 	lipgloss.Color("#565656"),
+		Highlight:  lipgloss.Color("#565656"),
 		Foreground: lipgloss.Color("#000fff"),
-		Accent: lipgloss.Color("#5fd8d0"),
-		Text: lipgloss.Color("#db386e"),
-		InputMax: 88,
-		PadX: 8,
+		Accent:     lipgloss.Color("#5fd8d0"),
+		Text:       lipgloss.Color("#db386e"),
+		InputMax:   88,
+		PadX:       8,
 	}
 	return defaultTheme
 }

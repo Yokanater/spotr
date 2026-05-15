@@ -11,9 +11,9 @@ var logo string = `
   █  ▐▌ ▐▌▐▛▀▀▘▐▛▀▀▘▐▌ ▝▜▌▐▌ ▐▌  █  
   █  ▝▚▄▞▘▐▌   ▐▌   ▐▌  ▐▌▝▚▄▞▘  █  
                                                                                                                                                                                                            
-` 
+`
 
-func HomeView (styles theme.Styles) string {
+func HomeView(styles theme.Styles) string {
 	s := styles.Opener.Render(logo)
 	return s
 }

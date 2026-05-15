@@ -30,20 +30,20 @@ func main() {
 }
 
 type model struct {
-	quitting bool
-	maxH     int
-	maxW     int
-	appH     int
-	appW     int
-	termH    int
-	termW    int
-	theme    theme.Theme
-	screen   string
-	styles   theme.Styles
-	input    textinput.Model
-	store    *store.Store
-	status   string
-	programs []string
+	quitting      bool
+	maxH          int
+	maxW          int
+	appH          int
+	appW          int
+	termH         int
+	termW         int
+	theme         theme.Theme
+	screen        string
+	styles        theme.Styles
+	input         textinput.Model
+	store         *store.Store
+	status        string
+	programs      []string
 	activeProgram data.Program
 }
 
@@ -84,42 +84,43 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.input.SetWidth(min(m.theme.InputMax, m.appW-m.theme.PadX))
 	case tea.KeyPressMsg:
 		switch msg.String() {
-		case "enter": {
-			line := m.input.Value()
-			m.input.SetValue("")
-			if line == "" {
-				break
-			}
-			command, ok := commands.Parse(line)
-			if (!ok) {
-				m.status = "error parsing command"
-				return m, cmd
-			}
-			resolved, status := commands.Resolve(command)
-			
-			if (!status){
-				m.status = fmt.Sprintf("Command not defined: %v", resolved)
-				return m, cmd
-			}
-			switch resolved {
-			case "program":
-				m.handleProgram(command.Args)
+		case "enter":
+			{
+				line := m.input.Value()
+				m.input.SetValue("")
+				if line == "" {
+					break
+				}
+				command, ok := commands.Parse(line)
+				if !ok {
+					m.status = "error parsing command"
+					return m, cmd
+				}
+				resolved, status := commands.Resolve(command)
 
-			case "workout":
-				m.handleWorkout(command.Args)
-				return m, cmd
-			case "help":
-				m.screen = "help"
-				return m, cmd
-			
-			case "home":
-				m.screen = "home"
-				return m, cmd
-			
-			case "quit":
-				return m, tea.Quit
+				if !status {
+					m.status = fmt.Sprintf("Command not defined: %v", resolved)
+					return m, cmd
+				}
+				switch resolved {
+				case "program":
+					m.handleProgram(command.Args)
+
+				case "workout":
+					m.handleWorkout(command.Args)
+					return m, cmd
+				case "help":
+					m.screen = "help"
+					return m, cmd
+
+				case "home":
+					m.screen = "home"
+					return m, cmd
+
+				case "quit":
+					return m, tea.Quit
+				}
 			}
-		}
 		case "ctrl+c", "esc":
 			return m, tea.Quit
 		}
@@ -140,10 +141,10 @@ func (m model) View() tea.View {
 	switch m.screen {
 	case "home":
 		screen = screens.HomeView(m.styles)
-	
+
 	case "help":
 		screen = screens.HelpView(m.styles)
-	
+
 	case "program":
 		screen = screens.ProgramView(m.styles, m.programs)
 
@@ -158,7 +159,7 @@ func (m model) View() tea.View {
 	return v
 }
 
-func (m *model) handleProgram (args []string) {
+func (m *model) handleProgram(args []string) {
 	if len(args) == 0 {
 		m.status = "usage: program <list|add|select> ..."
 		return
@@ -174,7 +175,7 @@ func (m *model) handleProgram (args []string) {
 			return
 		}
 		m.programs = programs
-	
+
 	case "add":
 		if len(args) < 2 {
 			m.status = "usage: program add <name>"
@@ -198,7 +199,7 @@ func (m *model) handleProgram (args []string) {
 		program, err := m.store.SelectProgram(args[1])
 		if err != nil {
 			m.status = err.Error()
-			return 
+			return
 		}
 		m.activeProgram = program
 		m.status = "Selected program" + program.ProgramName
@@ -208,7 +209,7 @@ func (m *model) handleProgram (args []string) {
 	}
 }
 
-func (m *model) handleWorkout (args []string) {
+func (m *model) handleWorkout(args []string) {
 	if len(args) == 0 {
 		m.status = "usage: program <list|add|select> ..."
 		return

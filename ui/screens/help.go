@@ -6,8 +6,7 @@ import (
 	"ruffnut/ui/theme"
 )
 
-
-func HelpView (styles theme.Styles) string {
+func HelpView(styles theme.Styles) string {
 	help := ""
 	registry := commands.Registry
 	order := commands.CommandsOrder

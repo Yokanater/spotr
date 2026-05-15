@@ -4,9 +4,9 @@ import (
 	"strings"
 )
 
-func Parse (msg string) (Command, bool) {
+func Parse(msg string) (Command, bool) {
 	msg = strings.TrimSpace(msg)
-	if (msg == "") {
+	if msg == "" {
 		return Command{}, false
 	}
 	parts := strings.Fields(msg)
@@ -16,15 +16,15 @@ func Parse (msg string) (Command, bool) {
 	return final, true
 }
 
-func Resolve (cmd Command) (canonical string, ok bool) {
+func Resolve(cmd Command) (canonical string, ok bool) {
 	resolved, found := Registry[cmd.Cmd]
-	if (!found) {
+	if !found {
 		name, found := AliasToCanonical[cmd.Cmd]
-		if (found) {
+		if found {
 			resolved, found := Registry[name]
 			return resolved.Name, found
 		}
 		return cmd.Cmd, false
 	}
 	return resolved.Name, found
-}	
+}

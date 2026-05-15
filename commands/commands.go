@@ -70,7 +70,7 @@ var AliasToCanonical = map[string]string{
 	"w":    "workout",
 	"l":    "log",
 	"hist": "history",
-	"~": "home",
+	"~":    "home",
 }
 
-var CommandsOrder = []string{"help", "home", "program", "workout", "log", "history", "quit"};
+var CommandsOrder = []string{"help", "home", "program", "workout", "log", "history", "quit"}

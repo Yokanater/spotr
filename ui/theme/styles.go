@@ -6,13 +6,13 @@ import (
 
 type Styles struct {
 	Opener lipgloss.Style
-	Box lipgloss.Style
-	Input lipgloss.Style
+	Box    lipgloss.Style
+	Input  lipgloss.Style
 	Status lipgloss.Style
-	Help lipgloss.Style
+	Help   lipgloss.Style
 }
 
-func NewStyles (t Theme, w int, h int) Styles {
+func NewStyles(t Theme, w int, h int) Styles {
 	newStyles := Styles{
 
 		Opener: lipgloss.NewStyle().
@@ -26,7 +26,7 @@ func NewStyles (t Theme, w int, h int) Styles {
 			Height(h),
 
 		Input: lipgloss.NewStyle().
-			Width(min(t.InputMax, w - t.PadX)).
+			Width(min(t.InputMax, w-t.PadX)).
 			Height(5).
 			Align(lipgloss.Center).
 			AlignVertical(lipgloss.Center).
@@ -34,13 +34,13 @@ func NewStyles (t Theme, w int, h int) Styles {
 			Border(lipgloss.NormalBorder()).
 			BorderForeground(t.Highlight).
 			Foreground(t.Background),
-		
+
 		Status: lipgloss.NewStyle().
 			Height(1).
 			Foreground(t.Highlight).
-			Width(min(t.InputMax, w - t.PadX)).
+			Width(min(t.InputMax, w-t.PadX)).
 			Align(lipgloss.Left),
-		
+
 		Help: lipgloss.NewStyle(),
 	}
 	return newStyles
