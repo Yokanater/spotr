@@ -43,7 +43,8 @@ type model struct {
 	input         textinput.Model
 	store         *store.Store
 	status        string
-	programs      []string
+	programs      []data.Program
+	workouts 	  []data.Workout
 	activeProgram data.Program
 }
 
@@ -182,12 +183,13 @@ func (m *model) handleProgram(args []string) {
 			return
 		}
 
-		err := m.store.CreateProgram(args[1])
+		id, err := m.store.CreateProgram(args[1])
 		if err != nil {
 			m.status = err.Error()
 			return
 		}
-		m.programs = append(m.programs, args[1])
+		program := data.Program{ProgramId: id, ProgramName: args[1]}
+		m.programs = append(m.programs, program)
 		m.status = "Created program"
 
 	case "select":
@@ -217,7 +219,7 @@ func (m *model) handleWorkout(args []string) {
 	cmd := args[0]
 	m.screen = "program"
 	switch cmd {
-	case "add": 
+	case "add":
 
 		if len(args) < 2 {
 			m.status = "usage: workout add <name>"
@@ -231,11 +233,10 @@ func (m *model) handleWorkout(args []string) {
 		}
 
 	case "list":
-		workouts, err := m.store.ListWorkouts(m.activeProgram)
+		_, err := m.store.ListWorkouts(m.activeProgram)
 		if err != nil {
 			m.status = err.Error()
 			return
 		}
-		m.programs = workouts
 	}
 }

@@ -75,19 +75,23 @@ func (s *Store) init() error {
 	return err
 }
 
-func (s *Store) CreateProgram(name string) error {
+func (s *Store) CreateProgram(name string) (int64, error) {
 	date := time.Now().UTC().Format(time.RFC3339)
-	_, err := s.db.Exec("INSERT INTO programs (name, created_at) VALUES (?, ?)", name, date)
+	res, err := s.db.Exec("INSERT INTO programs (name, created_at) VALUES (?, ?)", name, date)
 	if err != nil {
-		return err
+		return 0, err
 	}
-	return nil
+	id, err := res.LastInsertId()
+	if err != nil {
+		return id, err
+	}
+	return id, nil
 }
 
-func (s *Store) ListPrograms() ([]string, error) {
-	programs := []string{}
+func (s *Store) ListPrograms() ([]data.Program, error) {
+	programs := []data.Program{}
 
-	rows, err := s.db.Query("SELECT name FROM programs ORDER BY name")
+	rows, err := s.db.Query("SELECT id, name FROM programs ORDER BY name")
 
 	if err != nil {
 		return programs, err
@@ -96,13 +100,14 @@ func (s *Store) ListPrograms() ([]string, error) {
 
 	for rows.Next() {
 		var name string
+		var id int64
 
-		err := rows.Scan(&name)
+		err := rows.Scan(&id, &name)
 
 		if err != nil {
 			return programs, err
 		}
-		programs = append(programs, name)
+		programs = append(programs, data.Program{ProgramId: id, ProgramName: name})
 	}
 
 	err = rows.Err()
