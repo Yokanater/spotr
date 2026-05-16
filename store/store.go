@@ -133,7 +133,7 @@ func (s *Store) SelectProgram(arg string) (data.Program, error) {
 	return program, err
 }
 
-func (s *Store) CreateWorkout(name string, program data.Program) (error) {
+func (s *Store) CreateWorkout(name string, program data.Program) error {
 	date := time.Now().UTC().Format(time.RFC3339)
 
 	_, err := s.db.Exec("INSERT INTO workouts (program_id, name, created_at) VALUES (?, ?, ?)", program.ProgramId, name, date)
