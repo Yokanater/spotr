@@ -214,4 +214,28 @@ func (m *model) handleWorkout(args []string) {
 		m.status = "usage: program <list|add|select> ..."
 		return
 	}
+	cmd := args[0]
+	m.screen = "program"
+	switch cmd {
+	case "add": 
+
+		if len(args) < 2 {
+			m.status = "usage: workout add <name>"
+			return
+		}
+
+		err := m.store.CreateWorkout(args[1], m.activeProgram)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+
+	case "list":
+		workouts, err := m.store.ListWorkouts(m.activeProgram)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.programs = workouts
+	}
 }

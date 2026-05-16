@@ -132,3 +132,42 @@ func (s *Store) SelectProgram(arg string) (data.Program, error) {
 	program := data.Program{ProgramId: progId, ProgramName: progName}
 	return program, err
 }
+
+func (s *Store) CreateWorkout(name string, program data.Program) (error) {
+	date := time.Now().UTC().Format(time.RFC3339)
+
+	_, err := s.db.Exec("INSERT INTO workouts (program_id, name, created_at) VALUES (?, ?, ?)", program.ProgramId, name, date)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *Store) ListWorkouts(program data.Program) ([]string, error) {
+	workouts := []string{}
+
+	rows, err := s.db.Query("SELECT name FROM workouts WHERE program_id=? ORDER BY name", program.ProgramId)
+
+	if err != nil {
+		return workouts, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var name string
+
+		err := rows.Scan(&name)
+
+		if err != nil {
+			return workouts, err
+		}
+		workouts = append(workouts, name)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		return workouts, err
+	}
+	return workouts, nil
+}
