@@ -15,6 +15,7 @@ func HelpView(styles theme.Styles) string {
 		str := fmt.Sprintf("%v: %v \n", v.Name, v.Summary)
 		help += str
 	}
+
 	s := styles.Help.Render(help)
 	return s
 }
