@@ -234,6 +234,7 @@ func (m *model) handleWorkout(args []string) {
 
 	case "list":
 		_, err := m.store.ListWorkouts(m.activeProgram)
+		
 		if err != nil {
 			m.status = err.Error()
 			return
