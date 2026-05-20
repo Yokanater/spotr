@@ -149,10 +149,10 @@ func (s *Store) CreateWorkout(name string, program data.Program) error {
 	return nil
 }
 
-func (s *Store) ListWorkouts(program data.Program) ([]string, error) {
-	workouts := []string{}
+func (s *Store) ListWorkouts(program data.Program) ([]data.Workout, error) {
+	workouts := []data.Workout{}
 
-	rows, err := s.db.Query("SELECT name FROM workouts WHERE program_id=? ORDER BY name", program.ProgramId)
+	rows, err := s.db.Query("SELECT id, name FROM workouts WHERE program_id=? ORDER BY name", program.ProgramId)
 
 	if err != nil {
 		return workouts, err
@@ -160,14 +160,19 @@ func (s *Store) ListWorkouts(program data.Program) ([]string, error) {
 	defer rows.Close()
 
 	for rows.Next() {
+		var id int64
 		var name string
 
-		err := rows.Scan(&name)
+		err := rows.Scan(&id, &name)
 
 		if err != nil {
 			return workouts, err
 		}
-		workouts = append(workouts, name)
+		workouts = append(workouts, data.Workout{
+			WorkoutId: id,
+			ProgramId: program.ProgramId,
+			Name:      name,
+		})
 	}
 
 	err = rows.Err()

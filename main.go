@@ -44,7 +44,7 @@ type model struct {
 	store         *store.Store
 	status        string
 	programs      []data.Program
-	workouts 	  []data.Workout
+	workouts      []data.Workout
 	activeProgram data.Program
 }
 
@@ -147,7 +147,7 @@ func (m model) View() tea.View {
 		screen = screens.HelpView(m.styles)
 
 	case "program":
-		screen = screens.ProgramView(m.styles, m.programs)
+		screen = screens.ProgramView(m.styles, m.programs, m.workouts, m.activeProgram)
 
 	}
 	join := lipgloss.JoinVertical(lipgloss.Center, screen, input, status)
@@ -204,6 +204,12 @@ func (m *model) handleProgram(args []string) {
 			return
 		}
 		m.activeProgram = program
+		workouts, err := m.store.ListWorkouts(program)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.workouts = workouts
 		m.status = "Selected program" + program.ProgramName
 
 	default:
@@ -212,8 +218,13 @@ func (m *model) handleProgram(args []string) {
 }
 
 func (m *model) handleWorkout(args []string) {
+	if m.activeProgram.ProgramId == 0 {
+		m.status = "select a program first: program select <id|name>"
+		return
+	}
+
 	if len(args) == 0 {
-		m.status = "usage: program <list|add|select> ..."
+		m.status = "usage: workout <list|add> ..."
 		return
 	}
 	cmd := args[0]
@@ -231,13 +242,19 @@ func (m *model) handleWorkout(args []string) {
 			m.status = err.Error()
 			return
 		}
+		m.workouts = append(m.workouts, data.Workout{
+			ProgramId: m.activeProgram.ProgramId,
+			Name:      args[1],
+		})
+		m.status = "Created workout"
 
 	case "list":
-		_, err := m.store.ListWorkouts(m.activeProgram)
-		
+		workouts, err := m.store.ListWorkouts(m.activeProgram)
+
 		if err != nil {
 			m.status = err.Error()
 			return
 		}
+		m.workouts = workouts
 	}
 }
