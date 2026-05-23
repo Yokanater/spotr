@@ -66,8 +66,9 @@ func (s *Store) init() error {
 		CREATE TABLE IF NOT EXISTS workouts (
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			program_id REFERENCES programs(id),
-			name TEXT NOT NULL UNIQUE,
-			created_at TEXT NOT NULL
+			name TEXT NOT NULL,
+			created_at TEXT NOT NULL,
+			UNIQUE(program_id, name)
 		);`); err != nil {
 		return err
 	}
