@@ -47,6 +47,12 @@ var Registry = map[string]Spec{
 		Usage:   "workout <add|list> ...",
 		Summary: "manage workout templates",
 	},
+	"exercise": {
+		Name:    "exercise",
+		Aliases: []string{"ex"},
+		Usage:   "exercise <add|list> ...",
+		Summary: "manage exercises inside a workout",
+	},
 	"log": {
 		Name:    "log",
 		Aliases: []string{"l"},
@@ -68,9 +74,10 @@ var AliasToCanonical = map[string]string{
 	"exit": "quit",
 	"prog": "program",
 	"w":    "workout",
+	"ex":   "exercise",
 	"l":    "log",
 	"hist": "history",
 	"~":    "home",
 }
 
-var CommandsOrder = []string{"help", "home", "program", "workout", "log", "history", "quit"}
+var CommandsOrder = []string{"help", "home", "program", "workout", "exercise", "log", "history", "quit"}

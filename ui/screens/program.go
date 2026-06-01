@@ -6,12 +6,15 @@ import (
 	"strings"
 )
 
-func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.Workout, activeProgram data.Program) string {
+func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.Workout, exercises []data.Exercise, activeProgram data.Program, activeWorkout data.Workout) string {
 	var lines []string
 	if activeProgram.ProgramId == 0 {
 		lines = append(lines, "No active program selected.")
 	} else {
 		lines = append(lines, "Program: "+activeProgram.ProgramName)
+	}
+	if activeWorkout.WorkoutId != 0 {
+		lines = append(lines, "Workout: "+activeWorkout.Name)
 	}
 
 	lines = append(lines, "")
@@ -27,6 +30,16 @@ func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.W
 	} else {
 		for i := range workouts {
 			lines = append(lines, "- "+workouts[i].Name)
+		}
+	}
+
+	lines = append(lines, "")
+	lines = append(lines, "Exercises:")
+	if len(exercises) == 0 {
+		lines = append(lines, "- none")
+	} else {
+		for i := range exercises {
+			lines = append(lines, "- "+exercises[i].Name)
 		}
 	}
 

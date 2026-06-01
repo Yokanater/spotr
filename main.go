@@ -45,7 +45,9 @@ type model struct {
 	status        string
 	programs      []data.Program
 	workouts      []data.Workout
+	exercises     []data.Exercise
 	activeProgram data.Program
+	activeWorkout data.Workout
 }
 
 func initialModel(st *store.Store) model {
@@ -110,6 +112,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				case "workout":
 					m.handleWorkout(command.Args)
 					return m, cmd
+				case "exercise":
+					m.handleExercise(command.Args)
+					return m, cmd
 				case "help":
 					m.screen = "help"
 					return m, cmd
@@ -147,7 +152,7 @@ func (m model) View() tea.View {
 		screen = screens.HelpView(m.styles)
 
 	case "program":
-		screen = screens.ProgramView(m.styles, m.programs, m.workouts, m.activeProgram)
+		screen = screens.ProgramView(m.styles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout)
 
 	}
 	join := lipgloss.JoinVertical(lipgloss.Center, screen, input, status)
@@ -210,6 +215,8 @@ func (m *model) handleProgram(args []string) {
 			return
 		}
 		m.workouts = workouts
+		m.activeWorkout = data.Workout{}
+		m.exercises = nil
 		m.status = "Selected program" + program.ProgramName
 
 	default:
@@ -256,5 +263,69 @@ func (m *model) handleWorkout(args []string) {
 			return
 		}
 		m.workouts = workouts
+
+	case "select":
+		if len(args) < 2 {
+			m.status = "usage: workout select <id|name>"
+			return
+		}
+
+		workout, err := m.store.SelectWorkout(args[1], m.activeProgram)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.activeWorkout = workout
+		exercises, err := m.store.ListExercises(workout)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.exercises = exercises
+		m.status = "Selected workout" + workout.Name
+	}
+}
+
+func (m *model) handleExercise(args []string) {
+	if m.activeWorkout.WorkoutId == 0 {
+		m.status = "select a workout first: workout select <id|name>"
+		return
+	}
+
+	if len(args) == 0 {
+		m.status = "usage: exercise <list|add> ..."
+		return
+	}
+
+	cmd := args[0]
+	m.screen = "program"
+	switch cmd {
+	case "add":
+		if len(args) < 2 {
+			m.status = "usage: exercise add <name>"
+			return
+		}
+
+		err := m.store.CreateExercise(args[1], m.activeWorkout)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.exercises = append(m.exercises, data.Exercise{
+			WorkoutId: m.activeWorkout.WorkoutId,
+			Name:      args[1],
+		})
+		m.status = "Created exercise"
+
+	case "list":
+		exercises, err := m.store.ListExercises(m.activeWorkout)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.exercises = exercises
+
+	default:
+		m.status = fmt.Sprintf("unknown exercise command: %s", cmd)
 	}
 }
