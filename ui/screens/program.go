@@ -4,44 +4,70 @@ import (
 	"ruffnut/data"
 	"ruffnut/ui/theme"
 	"strings"
+
+	"charm.land/lipgloss/v2"
 )
 
 func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.Workout, exercises []data.Exercise, activeProgram data.Program, activeWorkout data.Workout) string {
-	var lines []string
+	title := styles.ProgramTitle.Render("PROGRAMS")
+
+	var context []string
 	if activeProgram.ProgramId == 0 {
-		lines = append(lines, "No active program selected.")
+		context = append(context, "program: none selected")
 	} else {
-		lines = append(lines, "Program: "+activeProgram.ProgramName)
+		context = append(context, "program: "+activeProgram.ProgramName)
 	}
-	if activeWorkout.WorkoutId != 0 {
-		lines = append(lines, "Workout: "+activeWorkout.Name)
-	}
-
-	lines = append(lines, "")
-	lines = append(lines, "Programs:")
-	for i := range programs {
-		lines = append(lines, "- "+programs[i].ProgramName)
-	}
-
-	lines = append(lines, "")
-	lines = append(lines, "Workouts:")
-	if len(workouts) == 0 {
-		lines = append(lines, "- none")
+	if activeWorkout.WorkoutId == 0 {
+		context = append(context, "workout: none selected")
 	} else {
-		for i := range workouts {
-			lines = append(lines, "- "+workouts[i].Name)
-		}
+		context = append(context, "workout: "+activeWorkout.Name)
 	}
 
+	subtitle := styles.ProgramSubtitle.Render(strings.Join(context, "  |  "))
+	programPanel := renderProgramSection(styles, "programs", programNames(programs), "program list")
+	workoutPanel := renderProgramSection(styles, "workouts", workoutNames(workouts), "workout list")
+	exercisePanel := renderProgramSection(styles, "exercises", exerciseNames(exercises), "exercise list")
+
+	panels := lipgloss.JoinHorizontal(lipgloss.Top, programPanel, "  ", workoutPanel, "  ", exercisePanel)
+	return lipgloss.JoinVertical(lipgloss.Center, title, subtitle, "", panels)
+}
+
+func renderProgramSection(styles theme.Styles, title string, values []string, emptyHint string) string {
+	var lines []string
+	lines = append(lines, styles.ProgramPanelTitle.Render(title))
 	lines = append(lines, "")
-	lines = append(lines, "Exercises:")
-	if len(exercises) == 0 {
-		lines = append(lines, "- none")
-	} else {
-		for i := range exercises {
-			lines = append(lines, "- "+exercises[i].Name)
-		}
+	if len(values) == 0 {
+		lines = append(lines, styles.ProgramEmpty.Render(emptyHint))
+		return styles.ProgramPanel.Render(strings.Join(lines, "\n"))
 	}
 
-	return styles.Help.Render(strings.Join(lines, "\n"))
+	for _, value := range values {
+		lines = append(lines, styles.ProgramItem.Render(value))
+	}
+
+	return styles.ProgramPanel.Render(strings.Join(lines, "\n"))
+}
+
+func programNames(programs []data.Program) []string {
+	names := make([]string, 0, len(programs))
+	for _, program := range programs {
+		names = append(names, program.ProgramName)
+	}
+	return names
+}
+
+func workoutNames(workouts []data.Workout) []string {
+	names := make([]string, 0, len(workouts))
+	for _, workout := range workouts {
+		names = append(names, workout.Name)
+	}
+	return names
+}
+
+func exerciseNames(exercises []data.Exercise) []string {
+	names := make([]string, 0, len(exercises))
+	for _, exercise := range exercises {
+		names = append(names, exercise.Name)
+	}
+	return names
 }

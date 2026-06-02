@@ -37,6 +37,9 @@ func Default() Theme {
 		Foreground: lipgloss.Color("#000fff"),
 		Accent:     lipgloss.Color("#5fd8d0"),
 		Text:       lipgloss.Color("#db386e"),
+		TextMuted:  lipgloss.Color("#8a8a8a"),
+		TextFaint:  lipgloss.Color("#565656"),
+		Border:     lipgloss.Color("#333333"),
 		InputMax:   88,
 		PadX:       8,
 	}
