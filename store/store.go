@@ -78,6 +78,8 @@ func (s *Store) init() error {
 			id INTEGER PRIMARY KEY AUTOINCREMENT,
 			workout_id REFERENCES workouts(id),
 			name TEXT NOT NULL,
+			sets INTEGER NOT NULL DEFAULT 0,
+			reps INTEGER NOT NULL DEFAULT 0,
 			created_at TEXT NOT NULL,
 			UNIQUE(workout_id, name)
 		);`); err != nil {
@@ -221,13 +223,15 @@ func (s *Store) ListWorkouts(program data.Program) ([]data.Workout, error) {
 	return workouts, nil
 }
 
-func (s *Store) CreateExercise(name string, workout data.Workout) error {
+func (s *Store) CreateExercise(name string, sets int, reps int, workout data.Workout) error {
 	date := time.Now().UTC().Format(time.RFC3339)
 
 	_, err := s.db.Exec(
-		"INSERT INTO exercises (workout_id, name, created_at) VALUES (?, ?, ?)",
+		"INSERT INTO exercises (workout_id, name, sets, reps, created_at) VALUES (?, ?, ?, ?, ?)",
 		workout.WorkoutId,
 		name,
+		sets,
+		reps,
 		date,
 	)
 	if err != nil {
@@ -240,7 +244,7 @@ func (s *Store) CreateExercise(name string, workout data.Workout) error {
 func (s *Store) ListExercises(workout data.Workout) ([]data.Exercise, error) {
 	exercises := []data.Exercise{}
 
-	rows, err := s.db.Query("SELECT id, name FROM exercises WHERE workout_id=? ORDER BY name", workout.WorkoutId)
+	rows, err := s.db.Query("SELECT id, name, sets, reps FROM exercises WHERE workout_id=? ORDER BY name", workout.WorkoutId)
 	if err != nil {
 		return exercises, err
 	}
@@ -249,8 +253,10 @@ func (s *Store) ListExercises(workout data.Workout) ([]data.Exercise, error) {
 	for rows.Next() {
 		var id int64
 		var name string
+		var sets int
+		var reps int
 
-		err := rows.Scan(&id, &name)
+		err := rows.Scan(&id, &name, &sets, &reps)
 		if err != nil {
 			return exercises, err
 		}
@@ -258,6 +264,8 @@ func (s *Store) ListExercises(workout data.Workout) ([]data.Exercise, error) {
 			ExerciseId: id,
 			WorkoutId:  workout.WorkoutId,
 			Name:       name,
+			Sets:       sets,
+			Reps:       reps,
 		})
 	}
 

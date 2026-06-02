@@ -9,6 +9,7 @@ import (
 	"ruffnut/ui/screens"
 	"ruffnut/ui/theme"
 	"ruffnut/ui/utils"
+	"strconv"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -302,11 +303,17 @@ func (m *model) handleExercise(args []string) {
 	switch cmd {
 	case "add":
 		if len(args) < 2 {
-			m.status = "usage: exercise add <name>"
+			m.status = "usage: exercise add <name> [sets] [reps]"
 			return
 		}
 
-		err := m.store.CreateExercise(args[1], m.activeWorkout)
+		sets, reps, err := parseExerciseDefaults(args)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+
+		err = m.store.CreateExercise(args[1], sets, reps, m.activeWorkout)
 		if err != nil {
 			m.status = err.Error()
 			return
@@ -314,6 +321,8 @@ func (m *model) handleExercise(args []string) {
 		m.exercises = append(m.exercises, data.Exercise{
 			WorkoutId: m.activeWorkout.WorkoutId,
 			Name:      args[1],
+			Sets:      sets,
+			Reps:      reps,
 		})
 		m.status = "Created exercise"
 
@@ -328,4 +337,24 @@ func (m *model) handleExercise(args []string) {
 	default:
 		m.status = fmt.Sprintf("unknown exercise command: %s", cmd)
 	}
+}
+
+func parseExerciseDefaults(args []string) (int, int, error) {
+	sets := 0
+	reps := 0
+	if len(args) >= 3 {
+		parsedSets, err := strconv.Atoi(args[2])
+		if err != nil {
+			return 0, 0, fmt.Errorf("sets must be a number")
+		}
+		sets = parsedSets
+	}
+	if len(args) >= 4 {
+		parsedReps, err := strconv.Atoi(args[3])
+		if err != nil {
+			return 0, 0, fmt.Errorf("reps must be a number")
+		}
+		reps = parsedReps
+	}
+	return sets, reps, nil
 }

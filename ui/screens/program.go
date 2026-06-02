@@ -1,6 +1,7 @@
 package screens
 
 import (
+	"fmt"
 	"ruffnut/data"
 	"ruffnut/ui/theme"
 	"strings"
@@ -67,6 +68,10 @@ func workoutNames(workouts []data.Workout) []string {
 func exerciseNames(exercises []data.Exercise) []string {
 	names := make([]string, 0, len(exercises))
 	for _, exercise := range exercises {
+		if exercise.Sets > 0 || exercise.Reps > 0 {
+			names = append(names, fmt.Sprintf("%s  %dx%d", exercise.Name, exercise.Sets, exercise.Reps))
+			continue
+		}
 		names = append(names, exercise.Name)
 	}
 	return names

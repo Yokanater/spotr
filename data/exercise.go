@@ -4,4 +4,6 @@ type Exercise struct {
 	ExerciseId int64
 	WorkoutId  int64
 	Name       string
+	Sets       int
+	Reps       int
 }
