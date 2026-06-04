@@ -10,6 +10,7 @@ import (
 	"ruffnut/ui/theme"
 	"ruffnut/ui/utils"
 	"strconv"
+	"strings"
 
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
@@ -189,12 +190,13 @@ func (m *model) handleProgram(args []string) {
 			return
 		}
 
-		id, err := m.store.CreateProgram(args[1])
+		name := strings.Join(args[1:], " ")
+		id, err := m.store.CreateProgram(name)
 		if err != nil {
 			m.status = err.Error()
 			return
 		}
-		program := data.Program{ProgramId: id, ProgramName: args[1]}
+		program := data.Program{ProgramId: id, ProgramName: name}
 		m.programs = append(m.programs, program)
 		m.status = "Created program"
 
@@ -204,7 +206,8 @@ func (m *model) handleProgram(args []string) {
 			return
 		}
 
-		program, err := m.store.SelectProgram(args[1])
+		name := strings.Join(args[1:], " ")
+		program, err := m.store.SelectProgram(name)
 		if err != nil {
 			m.status = err.Error()
 			return
@@ -245,14 +248,15 @@ func (m *model) handleWorkout(args []string) {
 			return
 		}
 
-		err := m.store.CreateWorkout(args[1], m.activeProgram)
+		name := strings.Join(args[1:], " ")
+		err := m.store.CreateWorkout(name, m.activeProgram)
 		if err != nil {
 			m.status = err.Error()
 			return
 		}
 		m.workouts = append(m.workouts, data.Workout{
 			ProgramId: m.activeProgram.ProgramId,
-			Name:      args[1],
+			Name:      name,
 		})
 		m.status = "Created workout"
 
@@ -271,7 +275,8 @@ func (m *model) handleWorkout(args []string) {
 			return
 		}
 
-		workout, err := m.store.SelectWorkout(args[1], m.activeProgram)
+		name := strings.Join(args[1:], " ")
+		workout, err := m.store.SelectWorkout(name, m.activeProgram)
 		if err != nil {
 			m.status = err.Error()
 			return
@@ -307,20 +312,20 @@ func (m *model) handleExercise(args []string) {
 			return
 		}
 
-		sets, reps, err := parseExerciseDefaults(args)
+		name, sets, reps, err := parseExerciseAddArgs(args)
 		if err != nil {
 			m.status = err.Error()
 			return
 		}
 
-		err = m.store.CreateExercise(args[1], sets, reps, m.activeWorkout)
+		err = m.store.CreateExercise(name, sets, reps, m.activeWorkout)
 		if err != nil {
 			m.status = err.Error()
 			return
 		}
 		m.exercises = append(m.exercises, data.Exercise{
 			WorkoutId: m.activeWorkout.WorkoutId,
-			Name:      args[1],
+			Name:      name,
 			Sets:      sets,
 			Reps:      reps,
 		})
@@ -339,22 +344,29 @@ func (m *model) handleExercise(args []string) {
 	}
 }
 
-func parseExerciseDefaults(args []string) (int, int, error) {
+func parseExerciseAddArgs(args []string) (string, int, int, error) {
+	nameEnd := len(args)
 	sets := 0
 	reps := 0
-	if len(args) >= 3 {
-		parsedSets, err := strconv.Atoi(args[2])
-		if err != nil {
-			return 0, 0, fmt.Errorf("sets must be a number")
-		}
-		sets = parsedSets
-	}
+
 	if len(args) >= 4 {
-		parsedReps, err := strconv.Atoi(args[3])
+		parsedSets, err := strconv.Atoi(args[len(args)-2])
 		if err != nil {
-			return 0, 0, fmt.Errorf("reps must be a number")
+			return "", 0, 0, fmt.Errorf("sets must be a number")
 		}
+		parsedReps, err := strconv.Atoi(args[len(args)-1])
+		if err != nil {
+			return "", 0, 0, fmt.Errorf("reps must be a number")
+		}
+		nameEnd = len(args) - 2
+		sets = parsedSets
 		reps = parsedReps
 	}
-	return sets, reps, nil
+
+	name := strings.Join(args[1:nameEnd], " ")
+	if strings.TrimSpace(name) == "" {
+		return "", 0, 0, fmt.Errorf("exercise name is required")
+	}
+
+	return name, sets, reps, nil
 }
