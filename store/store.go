@@ -302,3 +302,14 @@ func (s *Store) SelectExercise(arg string, workout data.Workout) (data.Exercise,
 	exercise.WorkoutId = workout.WorkoutId
 	return exercise, nil
 }
+
+func (s *Store) UpdateExerciseDefaults(exercise data.Exercise, sets int, reps int) error {
+	_, err := s.db.Exec(
+		`UPDATE exercises SET sets = ?, reps = ? WHERE id = ? AND workout_id = ?`,
+		sets,
+		reps,
+		exercise.ExerciseId,
+		exercise.WorkoutId,
+	)
+	return err
+}

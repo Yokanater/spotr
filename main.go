@@ -357,9 +357,52 @@ func (m *model) handleExercise(args []string) {
 		m.activeExercise = exercise
 		m.status = "Selected exercise" + exercise.Name
 
+	case "set":
+		if m.activeExercise.ExerciseId == 0 {
+			m.status = "select an exercise first: exercise select <id|name>"
+			return
+		}
+		if len(args) < 3 {
+			m.status = "usage: exercise set <sets> <reps>"
+			return
+		}
+
+		sets, reps, err := parseSetReps(args[1], args[2])
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		err = m.store.UpdateExerciseDefaults(m.activeExercise, sets, reps)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.activeExercise.Sets = sets
+		m.activeExercise.Reps = reps
+		for i := range m.exercises {
+			if m.exercises[i].ExerciseId == m.activeExercise.ExerciseId {
+				m.exercises[i].Sets = sets
+				m.exercises[i].Reps = reps
+				break
+			}
+		}
+		m.status = "Updated exercise"
+
 	default:
 		m.status = fmt.Sprintf("unknown exercise command: %s", cmd)
 	}
+}
+
+func parseSetReps(setsArg string, repsArg string) (int, int, error) {
+	sets, err := strconv.Atoi(setsArg)
+	if err != nil {
+		return 0, 0, fmt.Errorf("sets must be a number")
+	}
+	reps, err := strconv.Atoi(repsArg)
+	if err != nil {
+		return 0, 0, fmt.Errorf("reps must be a number")
+	}
+	return sets, reps, nil
 }
 
 func parseExerciseAddArgs(args []string) (string, int, int, error) {
