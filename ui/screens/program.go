@@ -9,7 +9,7 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.Workout, exercises []data.Exercise, activeProgram data.Program, activeWorkout data.Workout) string {
+func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.Workout, exercises []data.Exercise, activeProgram data.Program, activeWorkout data.Workout, activeExercise data.Exercise) string {
 	title := styles.ProgramTitle.Render("PROGRAMS")
 
 	var context []string
@@ -22,6 +22,11 @@ func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.W
 		context = append(context, "workout: none selected")
 	} else {
 		context = append(context, "workout: "+activeWorkout.Name)
+	}
+	if activeExercise.ExerciseId == 0 {
+		context = append(context, "exercise: none selected")
+	} else {
+		context = append(context, "exercise: "+exerciseLabel(activeExercise))
 	}
 
 	subtitle := styles.ProgramSubtitle.Render(strings.Join(context, "  |  "))
@@ -68,11 +73,14 @@ func workoutNames(workouts []data.Workout) []string {
 func exerciseNames(exercises []data.Exercise) []string {
 	names := make([]string, 0, len(exercises))
 	for _, exercise := range exercises {
-		if exercise.Sets > 0 || exercise.Reps > 0 {
-			names = append(names, fmt.Sprintf("%s  %dx%d", exercise.Name, exercise.Sets, exercise.Reps))
-			continue
-		}
-		names = append(names, exercise.Name)
+		names = append(names, exerciseLabel(exercise))
 	}
 	return names
+}
+
+func exerciseLabel(exercise data.Exercise) string {
+	if exercise.Sets > 0 || exercise.Reps > 0 {
+		return fmt.Sprintf("%s  %dx%d", exercise.Name, exercise.Sets, exercise.Reps)
+	}
+	return exercise.Name
 }

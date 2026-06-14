@@ -275,3 +275,30 @@ func (s *Store) ListExercises(workout data.Workout) ([]data.Exercise, error) {
 	}
 	return exercises, nil
 }
+
+func (s *Store) SelectExercise(arg string, workout data.Workout) (data.Exercise, error) {
+	var exercise data.Exercise
+	if utils.DigitCheck.MatchString(arg) {
+		err := s.db.QueryRow(
+			`SELECT id, name, sets, reps FROM exercises WHERE id = ? AND workout_id = ?`,
+			arg,
+			workout.WorkoutId,
+		).Scan(&exercise.ExerciseId, &exercise.Name, &exercise.Sets, &exercise.Reps)
+		if err != nil {
+			return data.Exercise{}, err
+		}
+		exercise.WorkoutId = workout.WorkoutId
+		return exercise, nil
+	}
+
+	err := s.db.QueryRow(
+		`SELECT id, name, sets, reps FROM exercises WHERE name = ? AND workout_id = ?`,
+		arg,
+		workout.WorkoutId,
+	).Scan(&exercise.ExerciseId, &exercise.Name, &exercise.Sets, &exercise.Reps)
+	if err != nil {
+		return data.Exercise{}, err
+	}
+	exercise.WorkoutId = workout.WorkoutId
+	return exercise, nil
+}

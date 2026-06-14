@@ -32,24 +32,25 @@ func main() {
 }
 
 type model struct {
-	quitting      bool
-	maxH          int
-	maxW          int
-	appH          int
-	appW          int
-	termH         int
-	termW         int
-	theme         theme.Theme
-	screen        string
-	styles        theme.Styles
-	input         textinput.Model
-	store         *store.Store
-	status        string
-	programs      []data.Program
-	workouts      []data.Workout
-	exercises     []data.Exercise
-	activeProgram data.Program
-	activeWorkout data.Workout
+	quitting       bool
+	maxH           int
+	maxW           int
+	appH           int
+	appW           int
+	termH          int
+	termW          int
+	theme          theme.Theme
+	screen         string
+	styles         theme.Styles
+	input          textinput.Model
+	store          *store.Store
+	status         string
+	programs       []data.Program
+	workouts       []data.Workout
+	exercises      []data.Exercise
+	activeProgram  data.Program
+	activeWorkout  data.Workout
+	activeExercise data.Exercise
 }
 
 func initialModel(st *store.Store) model {
@@ -154,7 +155,7 @@ func (m model) View() tea.View {
 		screen = screens.HelpView(m.styles)
 
 	case "program":
-		screen = screens.ProgramView(m.styles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout)
+		screen = screens.ProgramView(m.styles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout, m.activeExercise)
 
 	}
 	join := lipgloss.JoinVertical(lipgloss.Center, screen, input, status)
@@ -220,6 +221,7 @@ func (m *model) handleProgram(args []string) {
 		}
 		m.workouts = workouts
 		m.activeWorkout = data.Workout{}
+		m.activeExercise = data.Exercise{}
 		m.exercises = nil
 		m.status = "Selected program" + program.ProgramName
 
@@ -288,6 +290,7 @@ func (m *model) handleWorkout(args []string) {
 			return
 		}
 		m.exercises = exercises
+		m.activeExercise = data.Exercise{}
 		m.status = "Selected workout" + workout.Name
 	}
 }
@@ -338,6 +341,21 @@ func (m *model) handleExercise(args []string) {
 			return
 		}
 		m.exercises = exercises
+
+	case "select":
+		if len(args) < 2 {
+			m.status = "usage: exercise select <id|name>"
+			return
+		}
+
+		name := strings.Join(args[1:], " ")
+		exercise, err := m.store.SelectExercise(name, m.activeWorkout)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.activeExercise = exercise
+		m.status = "Selected exercise" + exercise.Name
 
 	default:
 		m.status = fmt.Sprintf("unknown exercise command: %s", cmd)
