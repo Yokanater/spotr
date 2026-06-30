@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"ruffnut/data"
 	"ruffnut/utils"
+	"strings"
 	"time"
 
 	_ "modernc.org/sqlite"
@@ -19,6 +20,7 @@ func NewSQLite(path string) (*Store, error) {
 	if err != nil {
 		return nil, err
 	}
+	db.SetMaxOpenConns(1)
 
 	s := &Store{db: db}
 	if err := s.init(); err != nil {
@@ -52,6 +54,9 @@ func (s *Store) init() error {
 			version INTEGER NOT NULL
 		);
 	`)
+	if err != nil {
+		return err
+	}
 
 	if _, err = s.db.Exec(`
 		CREATE TABLE IF NOT EXISTS programs (
@@ -86,7 +91,122 @@ func (s *Store) init() error {
 		return err
 	}
 
+	if err := s.migrate(); err != nil {
+		return err
+	}
+
 	return err
+}
+
+func (s *Store) migrate() error {
+	if err := s.addExerciseDefaultsColumns(); err != nil {
+		return err
+	}
+	if err := s.migrateWorkoutsUniqueConstraint(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func (s *Store) addExerciseDefaultsColumns() error {
+	hasSets, err := s.columnExists("exercises", "sets")
+	if err != nil {
+		return err
+	}
+	if !hasSets {
+		if _, err := s.db.Exec(`ALTER TABLE exercises ADD COLUMN sets INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return err
+		}
+	}
+
+	hasReps, err := s.columnExists("exercises", "reps")
+	if err != nil {
+		return err
+	}
+	if !hasReps {
+		if _, err := s.db.Exec(`ALTER TABLE exercises ADD COLUMN reps INTEGER NOT NULL DEFAULT 0`); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (s *Store) columnExists(table string, column string) (bool, error) {
+	rows, err := s.db.Query(`PRAGMA table_info(` + table + `)`)
+	if err != nil {
+		return false, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var cid int
+		var name string
+		var typ string
+		var notNull int
+		var defaultValue sql.NullString
+		var pk int
+		if err := rows.Scan(&cid, &name, &typ, &notNull, &defaultValue, &pk); err != nil {
+			return false, err
+		}
+		if name == column {
+			return true, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, err
+	}
+
+	return false, nil
+}
+
+func (s *Store) migrateWorkoutsUniqueConstraint() error {
+	var schema string
+	err := s.db.QueryRow(`SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'workouts'`).Scan(&schema)
+	if err != nil {
+		return err
+	}
+
+	if !strings.Contains(schema, "name TEXT NOT NULL UNIQUE") || strings.Contains(schema, "UNIQUE(program_id, name)") {
+		return nil
+	}
+
+	if _, err := s.db.Exec(`PRAGMA foreign_keys = OFF;`); err != nil {
+		return err
+	}
+	defer s.db.Exec(`PRAGMA foreign_keys = ON;`)
+
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`
+		CREATE TABLE workouts_new (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			program_id INTEGER REFERENCES programs(id),
+			name TEXT NOT NULL,
+			created_at TEXT NOT NULL,
+			UNIQUE(program_id, name)
+		);`); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(`
+		INSERT INTO workouts_new (id, program_id, name, created_at)
+		SELECT id, program_id, name, created_at FROM workouts;`); err != nil {
+		return err
+	}
+
+	if _, err := tx.Exec(`DROP TABLE workouts;`); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`ALTER TABLE workouts_new RENAME TO workouts;`); err != nil {
+		return err
+	}
+
+	return tx.Commit()
 }
 
 func (s *Store) CreateProgram(name string) (int64, error) {
