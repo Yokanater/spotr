@@ -86,6 +86,7 @@ func initialModel(st *store.Store) model {
 		styles: theme.NewStyles(t, utils.DefaultStruct.MaxW, utils.DefaultStruct.MaxH),
 		input:  ti,
 		store:  st,
+		mode: modeCmd,
 		screen: "home",
 		status: "hello everything good and great rn",
 	}
@@ -156,7 +157,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 			}
 		
-		case modeInput:
+		case modeNormal:
 			cmd := commands.HandleKeys(msg.String())
 			fmt.Println(cmd)
 		}
