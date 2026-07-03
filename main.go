@@ -89,7 +89,7 @@ func initialModel(st *store.Store) model {
 		store:  st,
 		mode:   modeCmd,
 		screen: "home",
-		status: "ssh-era gym notes. type help to see commands.",
+		status: "tui gym logs. type help to see commands.",
 	}
 }
 
