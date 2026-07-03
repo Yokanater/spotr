@@ -30,7 +30,7 @@ func HomeView(styles theme.Styles) string {
 		wordmark = compactLogo
 	}
 	title := styles.Logo.Render(wordmark)
-	tagline := styles.Tagline.Render("lift logging for nerds \n")
+	tagline := styles.Tagline.Render("lift logging for nerds")
 
 	return lipgloss.JoinVertical(lipgloss.Center, header, "", title, tagline)
 }
