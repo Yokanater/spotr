@@ -28,3 +28,7 @@ func Resolve(cmd Command) (canonical string, ok bool) {
 	}
 	return resolved.Name, found
 }
+
+func HandleKeys(key string) (cmd string) {
+	return ""
+}

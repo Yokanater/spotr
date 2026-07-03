@@ -31,6 +31,22 @@ func main() {
 	}
 }
 
+type mode string
+type screen string
+
+const (
+	modeNormal mode = "normal"
+	modeInput  mode = "input"
+	modeCmd    mode = "command"
+)
+
+const (
+	screenPrograms  screen = "programs"
+	screenWorkouts  screen = "workouts"
+	screenExercises screen = "exercises"
+	screenHelp      screen = "help"
+)
+
 type model struct {
 	quitting       bool
 	maxH           int
@@ -40,7 +56,8 @@ type model struct {
 	termH          int
 	termW          int
 	theme          theme.Theme
-	screen         string
+	screen         screen
+	mode           mode
 	styles         theme.Styles
 	input          textinput.Model
 	store          *store.Store
@@ -89,49 +106,59 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.styles = theme.NewStyles(m.theme, m.appW, m.appH)
 		m.input.SetWidth(min(m.theme.InputMax, m.appW-m.theme.PadX))
 	case tea.KeyPressMsg:
-		switch msg.String() {
-		case "enter":
-			{
-				line := m.input.Value()
-				m.input.SetValue("")
-				if line == "" {
-					break
-				}
-				command, ok := commands.Parse(line)
-				if !ok {
-					m.status = "error parsing command"
-					return m, cmd
-				}
-				resolved, status := commands.Resolve(command)
+		switch m.mode {
+		case modeCmd:
+			switch msg.String() {
+			case "enter":
+				{
+					line := m.input.Value()
+					m.input.SetValue("")
+					if line == "" {
+						break
+					}
+					command, ok := commands.Parse(line)
+					if !ok {
+						m.status = "error parsing command"
+						return m, cmd
+					}
+					resolved, status := commands.Resolve(command)
 
-				if !status {
-					m.status = fmt.Sprintf("Command not defined: %v", resolved)
-					return m, cmd
+					if !status {
+						m.status = fmt.Sprintf("Command not defined: %v", resolved)
+						return m, cmd
+					}
+					switch resolved {
+					case "program":
+						m.handleProgram(command.Args)
+
+					case "workout":
+						m.handleWorkout(command.Args)
+						return m, cmd
+					case "exercise":
+						m.handleExercise(command.Args)
+						return m, cmd
+					case "help":
+						m.screen = "help"
+						return m, cmd
+
+					case "home":
+						m.screen = "home"
+						return m, cmd
+
+					case "quit":
+						return m, tea.Quit
+					}
 				}
-				switch resolved {
-				case "program":
-					m.handleProgram(command.Args)
+			case "ctrl+c", "esc":
+				return m, tea.Quit
 
-				case "workout":
-					m.handleWorkout(command.Args)
-					return m, cmd
-				case "exercise":
-					m.handleExercise(command.Args)
-					return m, cmd
-				case "help":
-					m.screen = "help"
-					return m, cmd
+			default:
 
-				case "home":
-					m.screen = "home"
-					return m, cmd
-
-				case "quit":
-					return m, tea.Quit
-				}
 			}
-		case "ctrl+c", "esc":
-			return m, tea.Quit
+		
+		case modeInput:
+			cmd := commands.HandleKeys(msg.String())
+			fmt.Println(cmd)
 		}
 	}
 	m.input, cmd = m.input.Update(msg)

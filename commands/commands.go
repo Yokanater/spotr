@@ -21,7 +21,7 @@ var Registry = map[string]Spec{
 		Name:    "home",
 		Aliases: []string{"~"},
 		Usage:   "home",
-		Summary: "navigate to home screen",
+		Summary: "navigate to the home screen",
 	},
 	"help": {
 		Name:    "help",
@@ -38,20 +38,20 @@ var Registry = map[string]Spec{
 	"program": {
 		Name:    "program",
 		Aliases: []string{"prog"},
-		Usage:   "program <add|list|use> ...",
-		Summary: "manage workout programs",
+		Usage:   "program list | program add <name> | program select <id|name>",
+		Summary: "list, add, or select workout programs",
 	},
 	"workout": {
 		Name:    "workout",
 		Aliases: []string{"w"},
-		Usage:   "workout <add|list> ...",
-		Summary: "manage workout templates",
+		Usage:   "workout list | workout add <name> | workout select <id|name>",
+		Summary: "list, add, or select workouts in the active program",
 	},
 	"exercise": {
 		Name:    "exercise",
 		Aliases: []string{"ex"},
-		Usage:   "exercise <add|list> ...",
-		Summary: "manage exercises inside a workout",
+		Usage:   "exercise list | exercise add <name> [sets] [reps] | exercise select <id|name> | exercise set <sets> <reps>",
+		Summary: "list, add, select, or update exercises in the active workout",
 	},
 	"log": {
 		Name:    "log",
@@ -63,7 +63,7 @@ var Registry = map[string]Spec{
 		Name:    "history",
 		Aliases: []string{"hist"},
 		Usage:   "history <list|show> ...",
-		Summary: "browse saved workout sesssions",
+		Summary: "browse saved workout sessions",
 	},
 }
 
