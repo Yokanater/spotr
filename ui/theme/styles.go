@@ -10,6 +10,15 @@ type Styles struct {
 	Input             lipgloss.Style
 	Status            lipgloss.Style
 	Help              lipgloss.Style
+	Header            lipgloss.Style
+	Brand             lipgloss.Style
+	Nav               lipgloss.Style
+	Logo              lipgloss.Style
+	Tagline           lipgloss.Style
+	SectionTitle      lipgloss.Style
+	HelpRow           lipgloss.Style
+	HelpKey           lipgloss.Style
+	HelpText          lipgloss.Style
 	ProgramTitle      lipgloss.Style
 	ProgramSubtitle   lipgloss.Style
 	ProgramPanel      lipgloss.Style
@@ -19,59 +28,115 @@ type Styles struct {
 }
 
 func NewStyles(t Theme, w int, h int) Styles {
+	contentW := min(t.InputMax, max(1, w-t.PadX))
+	helpPaddingX := 3
+	if contentW < 72 {
+		helpPaddingX = 1
+	}
+	helpRowW := min(contentW, max(12, (contentW-8)/2))
+	panelW := max(12, (contentW-4)/3)
+	if contentW < 82 {
+		panelW = contentW
+	}
 	newStyles := Styles{
 
 		Opener: lipgloss.NewStyle().
 			Align(lipgloss.Center).
 			Width(w).
-			Foreground(t.Accent).
+			Foreground(t.Foreground).
 			Background(t.Background),
 
 		Box: lipgloss.NewStyle().
-			Width(w).
-			Height(h),
+			Width(contentW).
+			MaxHeight(h).
+			Background(t.Background),
 
 		Input: lipgloss.NewStyle().
-			Width(min(t.InputMax, w-t.PadX)).
-			Height(5).
-			Align(lipgloss.Center).
+			Width(contentW).
+			Height(3).
+			Align(lipgloss.Left).
 			AlignVertical(lipgloss.Center).
 			Background(t.Background).
 			Border(lipgloss.NormalBorder()).
-			BorderForeground(t.Highlight).
-			Foreground(t.Background),
+			BorderForeground(t.Divider).
+			Foreground(t.Text).
+			Padding(0, 2),
 
 		Status: lipgloss.NewStyle().
 			Height(1).
-			Foreground(t.Highlight).
-			Width(min(t.InputMax, w-t.PadX)).
+			Foreground(t.TextMuted).
+			Width(contentW).
 			Align(lipgloss.Left),
 
-		Help: lipgloss.NewStyle(),
+		Help: lipgloss.NewStyle().
+			Width(contentW).
+			Foreground(t.Text).
+			Border(lipgloss.NormalBorder()).
+			BorderForeground(t.Border).
+			Padding(1, helpPaddingX),
+
+		Header: lipgloss.NewStyle().
+			Width(contentW).
+			Foreground(t.TextMuted),
+
+		Brand: lipgloss.NewStyle().
+			Foreground(t.Foreground).
+			Bold(true),
+
+		Nav: lipgloss.NewStyle().
+			Foreground(t.TextFaint),
+
+		Logo: lipgloss.NewStyle().
+			Width(contentW).
+			Align(lipgloss.Center).
+			Foreground(t.Foreground).
+			Bold(true),
+
+		Tagline: lipgloss.NewStyle().
+			Width(contentW).
+			Align(lipgloss.Center).
+			Foreground(t.TextMuted),
+
+		SectionTitle: lipgloss.NewStyle().
+			Foreground(t.Highlight).
+			Bold(true),
+
+		HelpRow: lipgloss.NewStyle().
+			Width(helpRowW),
+
+		HelpKey: lipgloss.NewStyle().
+			Width(14).
+			Foreground(t.Accent).
+			Bold(true),
+
+		HelpText: lipgloss.NewStyle().
+			Foreground(t.Text),
 
 		ProgramTitle: lipgloss.NewStyle().
-			Width(min(t.InputMax, w-t.PadX)).
-			Align(lipgloss.Center).
-			Foreground(t.Accent).
+			Width(contentW).
+			Align(lipgloss.Left).
+			Foreground(t.Foreground).
 			Bold(true),
 
 		ProgramSubtitle: lipgloss.NewStyle().
-			Width(min(t.InputMax, w-t.PadX)).
-			Align(lipgloss.Center).
+			Width(contentW).
+			Align(lipgloss.Left).
 			Foreground(t.TextMuted),
 
 		ProgramPanel: lipgloss.NewStyle().
-			Width(max(18, (min(t.InputMax, w-t.PadX)-4)/3)).
+			Width(panelW).
 			Border(lipgloss.NormalBorder()).
 			BorderForeground(t.Border).
-			Padding(1, 2),
+			Foreground(t.Text).
+			Padding(1, 2).
+			MarginRight(1),
 
 		ProgramPanelTitle: lipgloss.NewStyle().
-			Foreground(t.Accent).
+			Foreground(t.Highlight).
 			Bold(true),
 
 		ProgramItem: lipgloss.NewStyle().
-			Foreground(t.TextMuted),
+			Foreground(t.Text),
 
 		ProgramEmpty: lipgloss.NewStyle().
 			Foreground(t.TextFaint),

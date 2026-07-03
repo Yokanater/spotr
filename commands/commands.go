@@ -33,7 +33,7 @@ var Registry = map[string]Spec{
 		Name:    "quit",
 		Aliases: []string{"q", "exit"},
 		Usage:   "quit",
-		Summary: "exit ruffnut",
+		Summary: "exit spotr",
 	},
 	"program": {
 		Name:    "program",

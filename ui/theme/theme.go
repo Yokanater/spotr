@@ -32,14 +32,15 @@ type Theme struct {
 
 func Default() Theme {
 	defaultTheme := Theme{
-		Background: lipgloss.Color("#111111"),
-		Highlight:  lipgloss.Color("#565656"),
-		Foreground: lipgloss.Color("#000fff"),
-		Accent:     lipgloss.Color("#5fd8d0"),
-		Text:       lipgloss.Color("#db386e"),
-		TextMuted:  lipgloss.Color("#8a8a8a"),
-		TextFaint:  lipgloss.Color("#565656"),
-		Border:     lipgloss.Color("#333333"),
+		Background: lipgloss.Color("#151515"),
+		Foreground: lipgloss.Color("#F1E8C8"),
+		Accent:     lipgloss.Color("#E8D889"),
+		Text:       lipgloss.Color("#E7E1D2"),
+		TextMuted:  lipgloss.Color("#A8A397"),
+		TextFaint:  lipgloss.Color("#6F6B63"),
+		Border:     lipgloss.Color("#3A3833"),
+		Divider:    lipgloss.Color("#4B4840"),
+		Highlight:  lipgloss.Color("#D8C77A"),
 		InputMax:   88,
 		PadX:       8,
 	}

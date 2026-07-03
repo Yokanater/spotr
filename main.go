@@ -20,13 +20,13 @@ import (
 func main() {
 	st, err := store.NewSQLite("ruffnut.db")
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "ruffnut: open db: %v\n", err)
+		fmt.Fprintf(os.Stderr, "spotr: open db: %v\n", err)
 		os.Exit(1)
 	}
 	defer st.Close()
 
 	if _, err := tea.NewProgram(initialModel(st)).Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "ruffnut: %v\n", err)
+		fmt.Fprintf(os.Stderr, "spotr: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -72,8 +72,9 @@ type model struct {
 
 func initialModel(st *store.Store) model {
 	ti := textinput.New()
-	ti.Placeholder = "Type something..."
 	t := theme.Default()
+	ti.Placeholder = "type a command..."
+	ti.Prompt = "spotr $ "
 	ti.SetWidth(t.InputMax)
 	ti.CharLimit = 128
 	ti.Focus()
@@ -86,9 +87,9 @@ func initialModel(st *store.Store) model {
 		styles: theme.NewStyles(t, utils.DefaultStruct.MaxW, utils.DefaultStruct.MaxH),
 		input:  ti,
 		store:  st,
-		mode: modeCmd,
+		mode:   modeCmd,
 		screen: "home",
-		status: "hello everything good and great rn",
+		status: "ssh-era gym notes. type help to see commands.",
 	}
 }
 
@@ -102,10 +103,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.WindowSizeMsg:
 		m.termW = msg.Width
 		m.termH = msg.Height
-		m.appW = min(m.termW, m.maxW)
+		m.appW = min(m.termW, min(m.maxW, m.theme.InputMax))
 		m.appH = min(m.termH, m.maxH)
 		m.styles = theme.NewStyles(m.theme, m.appW, m.appH)
-		m.input.SetWidth(min(m.theme.InputMax, m.appW-m.theme.PadX))
+		m.input.SetWidth(max(1, min(m.theme.InputMax, m.appW-m.theme.PadX)))
 	case tea.KeyPressMsg:
 		switch m.mode {
 		case modeCmd:
@@ -156,7 +157,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			default:
 
 			}
-		
+
 		case modeNormal:
 			cmd := commands.HandleKeys(msg.String())
 			fmt.Println(cmd)
@@ -186,6 +187,11 @@ func (m model) View() tea.View {
 		screen = screens.ProgramView(m.styles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout, m.activeExercise)
 
 	}
+	screenHeight := max(1, m.appH-lipgloss.Height(input)-lipgloss.Height(status)-2)
+	screen = lipgloss.NewStyle().
+		Width(m.styles.Box.GetWidth()).
+		MaxHeight(screenHeight).
+		Render(screen)
 	join := lipgloss.JoinVertical(lipgloss.Center, screen, input, status)
 	box := m.styles.Box.Render(join)
 	v := tea.NewView(
