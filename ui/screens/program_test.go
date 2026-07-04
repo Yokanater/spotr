@@ -24,6 +24,9 @@ func TestProgramViewShowsExerciseTargetWithLongName(t *testing.T) {
 		data.Program{},
 		data.Workout{},
 		data.Exercise{},
+		0,
+		0,
+		0,
 	)
 
 	if !strings.Contains(view, "3x10") {

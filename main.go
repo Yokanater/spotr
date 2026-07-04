@@ -49,6 +49,8 @@ const (
 )
 
 const (
+	screenHome      screen = "home"
+	screenProgram   screen = "program"
 	screenPrograms  screen = "programs"
 	screenWorkouts  screen = "workouts"
 	screenExercises screen = "exercises"
@@ -71,6 +73,9 @@ type model struct {
 	input          textinput.Model
 	store          *store.Store
 	status         string
+	programCursor  int
+	workoutCursor  int
+	exerciseCursor int
 	programs       []data.Program
 	workouts       []data.Workout
 	exercises      []data.Exercise
@@ -87,7 +92,7 @@ func initialModel(st *store.Store) model {
 	ti.SetWidth(t.InputMax)
 	ti.CharLimit = 128
 	ti.Focus()
-	return model{
+	m := model{
 		maxW:   utils.DefaultStruct.MaxW,
 		maxH:   utils.DefaultStruct.MaxH,
 		appW:   utils.DefaultStruct.W,
@@ -97,9 +102,13 @@ func initialModel(st *store.Store) model {
 		input:  ti,
 		store:  st,
 		mode:   modeNormal,
-		screen: "home",
+		screen: screenHome,
 		status: "press : for commands, a to add, ? for help",
 	}
+	if err := m.loadPrograms(); err != nil {
+		m.status = err.Error()
+	}
+	return m
 }
 
 func (m model) Init() tea.Cmd {
@@ -203,24 +212,191 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.status = "command mode"
 	case "a":
 		m.startAdd()
+	case "j", "down":
+		m.moveCursor(1)
+	case "k", "up":
+		m.moveCursor(-1)
+	case "enter":
+		m.openSelected()
 	case "?":
-		m.screen = "help"
+		m.screen = screenHelp
 		m.status = "help"
-	case "home", "b", "esc":
-		m.screen = "home"
-		m.status = "home"
+	case "home":
+		m.goHome()
+	case "b", "esc":
+		m.goBack()
 	case "q", "ctrl+c":
 		return m, tea.Quit
 	default:
-		m.status = "press : for commands, a to add, ? for help"
+		m.status = "j/k move, enter open, b back, a add, : command"
 	}
 	return m, cmd
+}
+
+func (m *model) moveCursor(delta int) {
+	m.screen = screenProgram
+	switch m.currentLevel() {
+	case screenPrograms:
+		m.programCursor = moveIndex(m.programCursor, delta, len(m.programs))
+	case screenWorkouts:
+		m.workoutCursor = moveIndex(m.workoutCursor, delta, len(m.workouts))
+	case screenExercises:
+		m.exerciseCursor = moveIndex(m.exerciseCursor, delta, len(m.exercises))
+	}
+}
+
+func moveIndex(current int, delta int, length int) int {
+	if length == 0 {
+		return 0
+	}
+	next := current + delta
+	if next < 0 {
+		return 0
+	}
+	if next >= length {
+		return length - 1
+	}
+	return next
+}
+
+func (m *model) openSelected() {
+	m.screen = screenProgram
+	switch m.currentLevel() {
+	case screenPrograms:
+		if len(m.programs) == 0 {
+			m.status = "no programs yet. press a to add one"
+			return
+		}
+		m.programCursor = clampIndex(m.programCursor, len(m.programs))
+		program := m.programs[m.programCursor]
+		m.activeProgram = program
+		if err := m.loadWorkouts(program); err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.activeWorkout = data.Workout{}
+		m.activeExercise = data.Exercise{}
+		m.workoutCursor = 0
+		m.exerciseCursor = 0
+		m.exercises = nil
+		m.status = "selected program " + program.ProgramName
+	case screenWorkouts:
+		if len(m.workouts) == 0 {
+			m.status = "no workouts yet. press a to add one"
+			return
+		}
+		m.workoutCursor = clampIndex(m.workoutCursor, len(m.workouts))
+		workout := m.workouts[m.workoutCursor]
+		m.activeWorkout = workout
+		if err := m.loadExercises(workout); err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.activeExercise = data.Exercise{}
+		m.exerciseCursor = 0
+		m.status = "selected workout " + workout.Name
+	case screenExercises:
+		if len(m.exercises) == 0 {
+			m.status = "no exercises yet. press a to add one"
+			return
+		}
+		m.exerciseCursor = clampIndex(m.exerciseCursor, len(m.exercises))
+		exercise := m.exercises[m.exerciseCursor]
+		m.activeExercise = exercise
+		m.status = "selected exercise " + exercise.Name
+	}
+}
+
+func clampIndex(current int, length int) int {
+	if length == 0 || current < 0 {
+		return 0
+	}
+	if current >= length {
+		return length - 1
+	}
+	return current
+}
+
+func (m *model) goBack() {
+	if m.screen == screenHelp {
+		m.screen = screenProgram
+		m.status = "back"
+		return
+	}
+	switch {
+	case m.activeExercise.ExerciseId != 0:
+		m.activeExercise = data.Exercise{}
+		m.status = "back to exercises"
+	case m.activeWorkout.WorkoutId != 0:
+		m.activeWorkout = data.Workout{}
+		m.activeExercise = data.Exercise{}
+		m.exercises = nil
+		m.exerciseCursor = 0
+		m.status = "back to workouts"
+	case m.activeProgram.ProgramId != 0:
+		m.activeProgram = data.Program{}
+		m.activeWorkout = data.Workout{}
+		m.activeExercise = data.Exercise{}
+		m.workouts = nil
+		m.exercises = nil
+		m.workoutCursor = 0
+		m.exerciseCursor = 0
+		m.status = "back to programs"
+	default:
+		m.goHome()
+	}
+	m.screen = screenProgram
+}
+
+func (m *model) goHome() {
+	m.screen = screenHome
+	m.status = "home"
+}
+
+func (m model) currentLevel() screen {
+	if m.activeWorkout.WorkoutId != 0 {
+		return screenExercises
+	}
+	if m.activeProgram.ProgramId != 0 {
+		return screenWorkouts
+	}
+	return screenPrograms
+}
+
+func (m *model) loadPrograms() error {
+	programs, err := m.store.ListPrograms()
+	if err != nil {
+		return err
+	}
+	m.programs = programs
+	m.programCursor = clampIndex(m.programCursor, len(m.programs))
+	return nil
+}
+
+func (m *model) loadWorkouts(program data.Program) error {
+	workouts, err := m.store.ListWorkouts(program)
+	if err != nil {
+		return err
+	}
+	m.workouts = workouts
+	m.workoutCursor = clampIndex(m.workoutCursor, len(m.workouts))
+	return nil
+}
+
+func (m *model) loadExercises(workout data.Workout) error {
+	exercises, err := m.store.ListExercises(workout)
+	if err != nil {
+		return err
+	}
+	m.exercises = exercises
+	m.exerciseCursor = clampIndex(m.exerciseCursor, len(m.exercises))
+	return nil
 }
 
 func (m *model) startAdd() {
 	m.mode = modeInput
 	m.input.SetValue("")
-	m.screen = "program"
+	m.screen = screenProgram
 
 	switch {
 	case m.activeWorkout.WorkoutId != 0:
@@ -284,11 +460,11 @@ func (m model) runCommandLine(line string) (tea.Model, tea.Cmd) {
 		m.handleExercise(command.Args)
 		return m, cmd
 	case "help":
-		m.screen = "help"
+		m.screen = screenHelp
 		return m, cmd
 
 	case "home":
-		m.screen = "home"
+		m.screen = screenHome
 		return m, cmd
 
 	case "quit":
@@ -307,14 +483,14 @@ func (m model) View() tea.View {
 	status := m.styles.Status.Render(m.status)
 	screen := ""
 	switch m.screen {
-	case "home":
+	case screenHome:
 		screen = screens.HomeView(m.styles)
 
-	case "help":
+	case screenHelp:
 		screen = screens.HelpView(m.styles)
 
-	case "program":
-		screen = screens.ProgramView(m.styles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout, m.activeExercise)
+	case screenProgram:
+		screen = screens.ProgramView(m.styles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout, m.activeExercise, m.programCursor, m.workoutCursor, m.exerciseCursor)
 
 	}
 	screenHeight := max(1, m.appH-lipgloss.Height(input)-lipgloss.Height(status)-2)
@@ -339,15 +515,13 @@ func (m *model) handleProgram(args []string) {
 	}
 
 	cmd := args[0]
-	m.screen = "program"
+	m.screen = screenProgram
 	switch cmd {
 	case "list":
-		programs, err := m.store.ListPrograms()
-		if err != nil {
+		if err := m.loadPrograms(); err != nil {
 			m.status = err.Error()
 			return
 		}
-		m.programs = programs
 
 	case "add":
 		if len(args) < 2 {
@@ -363,6 +537,7 @@ func (m *model) handleProgram(args []string) {
 		}
 		program := data.Program{ProgramId: id, ProgramName: name}
 		m.programs = append(m.programs, program)
+		m.programCursor = len(m.programs) - 1
 		m.status = "Created program"
 
 	case "select":
@@ -378,16 +553,16 @@ func (m *model) handleProgram(args []string) {
 			return
 		}
 		m.activeProgram = program
-		workouts, err := m.store.ListWorkouts(program)
-		if err != nil {
+		if err := m.loadWorkouts(program); err != nil {
 			m.status = err.Error()
 			return
 		}
-		m.workouts = workouts
 		m.activeWorkout = data.Workout{}
 		m.activeExercise = data.Exercise{}
 		m.exercises = nil
-		m.status = "Selected program" + program.ProgramName
+		m.workoutCursor = 0
+		m.exerciseCursor = 0
+		m.status = "Selected program " + program.ProgramName
 
 	default:
 		m.status = fmt.Sprintf("unknown program command: %s", cmd)
@@ -405,7 +580,7 @@ func (m *model) handleWorkout(args []string) {
 		return
 	}
 	cmd := args[0]
-	m.screen = "program"
+	m.screen = screenProgram
 	switch cmd {
 	case "add":
 
@@ -420,20 +595,18 @@ func (m *model) handleWorkout(args []string) {
 			m.status = err.Error()
 			return
 		}
-		m.workouts = append(m.workouts, data.Workout{
-			ProgramId: m.activeProgram.ProgramId,
-			Name:      name,
-		})
-		m.status = "Created workout"
-
-	case "list":
-		workouts, err := m.store.ListWorkouts(m.activeProgram)
-
-		if err != nil {
+		if err := m.loadWorkouts(m.activeProgram); err != nil {
 			m.status = err.Error()
 			return
 		}
-		m.workouts = workouts
+		m.workoutCursor = len(m.workouts) - 1
+		m.status = "Created workout"
+
+	case "list":
+		if err := m.loadWorkouts(m.activeProgram); err != nil {
+			m.status = err.Error()
+			return
+		}
 
 	case "select":
 		if len(args) < 2 {
@@ -448,14 +621,13 @@ func (m *model) handleWorkout(args []string) {
 			return
 		}
 		m.activeWorkout = workout
-		exercises, err := m.store.ListExercises(workout)
-		if err != nil {
+		if err := m.loadExercises(workout); err != nil {
 			m.status = err.Error()
 			return
 		}
-		m.exercises = exercises
 		m.activeExercise = data.Exercise{}
-		m.status = "Selected workout" + workout.Name
+		m.exerciseCursor = 0
+		m.status = "Selected workout " + workout.Name
 	}
 }
 
@@ -471,7 +643,7 @@ func (m *model) handleExercise(args []string) {
 	}
 
 	cmd := args[0]
-	m.screen = "program"
+	m.screen = screenProgram
 	switch cmd {
 	case "add":
 		if len(args) < 2 {
@@ -490,21 +662,18 @@ func (m *model) handleExercise(args []string) {
 			m.status = err.Error()
 			return
 		}
-		m.exercises = append(m.exercises, data.Exercise{
-			WorkoutId: m.activeWorkout.WorkoutId,
-			Name:      name,
-			Sets:      sets,
-			Reps:      reps,
-		})
-		m.status = "Created exercise"
-
-	case "list":
-		exercises, err := m.store.ListExercises(m.activeWorkout)
-		if err != nil {
+		if err := m.loadExercises(m.activeWorkout); err != nil {
 			m.status = err.Error()
 			return
 		}
-		m.exercises = exercises
+		m.exerciseCursor = len(m.exercises) - 1
+		m.status = "Created exercise"
+
+	case "list":
+		if err := m.loadExercises(m.activeWorkout); err != nil {
+			m.status = err.Error()
+			return
+		}
 
 	case "select":
 		if len(args) < 2 {
@@ -519,7 +688,7 @@ func (m *model) handleExercise(args []string) {
 			return
 		}
 		m.activeExercise = exercise
-		m.status = "Selected exercise" + exercise.Name
+		m.status = "Selected exercise " + exercise.Name
 
 	case "set":
 		if m.activeExercise.ExerciseId == 0 {

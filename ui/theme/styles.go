@@ -24,7 +24,9 @@ type Styles struct {
 	ProgramPanel      lipgloss.Style
 	ProgramPanelTitle lipgloss.Style
 	ProgramItem       lipgloss.Style
+	ProgramSelected   lipgloss.Style
 	ProgramEmpty      lipgloss.Style
+	ProgramListRows   int
 }
 
 func NewStyles(t Theme, w int, h int) Styles {
@@ -35,8 +37,10 @@ func NewStyles(t Theme, w int, h int) Styles {
 	}
 	helpRowW := min(contentW, max(12, (contentW-8)/2))
 	panelW := max(12, (contentW-4)/3)
+	programListRows := max(3, h-13)
 	if contentW < 82 {
 		panelW = contentW
+		programListRows = max(3, (h-13)/3)
 	}
 	newStyles := Styles{
 
@@ -138,8 +142,14 @@ func NewStyles(t Theme, w int, h int) Styles {
 		ProgramItem: lipgloss.NewStyle().
 			Foreground(t.Text),
 
+		ProgramSelected: lipgloss.NewStyle().
+			Foreground(t.Accent).
+			Bold(true),
+
 		ProgramEmpty: lipgloss.NewStyle().
 			Foreground(t.TextFaint),
+
+		ProgramListRows: programListRows,
 	}
 	return newStyles
 }
