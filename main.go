@@ -33,11 +33,19 @@ func main() {
 
 type mode string
 type screen string
+type inputPurpose string
 
 const (
 	modeNormal mode = "normal"
 	modeInput  mode = "input"
 	modeCmd    mode = "command"
+)
+
+const (
+	inputNone        inputPurpose = ""
+	inputAddProgram  inputPurpose = "add_program"
+	inputAddWorkout  inputPurpose = "add_workout"
+	inputAddExercise inputPurpose = "add_exercise"
 )
 
 const (
@@ -58,6 +66,7 @@ type model struct {
 	theme          theme.Theme
 	screen         screen
 	mode           mode
+	inputPurpose   inputPurpose
 	styles         theme.Styles
 	input          textinput.Model
 	store          *store.Store
@@ -73,8 +82,8 @@ type model struct {
 func initialModel(st *store.Store) model {
 	ti := textinput.New()
 	t := theme.Default()
-	ti.Placeholder = "type a command..."
-	ti.Prompt = "spotr $ "
+	ti.Placeholder = "press : to type a command"
+	ti.Prompt = ""
 	ti.SetWidth(t.InputMax)
 	ti.CharLimit = 128
 	ti.Focus()
@@ -87,9 +96,9 @@ func initialModel(st *store.Store) model {
 		styles: theme.NewStyles(t, utils.DefaultStruct.MaxW, utils.DefaultStruct.MaxH),
 		input:  ti,
 		store:  st,
-		mode:   modeCmd,
+		mode:   modeNormal,
 		screen: "home",
-		status: "tui gym logs. type help to see commands.",
+		status: "press : for commands, a to add, ? for help",
 	}
 }
 
@@ -110,60 +119,181 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case tea.KeyPressMsg:
 		switch m.mode {
 		case modeCmd:
-			switch msg.String() {
-			case "enter":
-				{
-					line := m.input.Value()
-					m.input.SetValue("")
-					if line == "" {
-						break
-					}
-					command, ok := commands.Parse(line)
-					if !ok {
-						m.status = "error parsing command"
-						return m, cmd
-					}
-					resolved, status := commands.Resolve(command)
+			return m.handleCommandKey(msg)
 
-					if !status {
-						m.status = fmt.Sprintf("Command not defined: %v", resolved)
-						return m, cmd
-					}
-					switch resolved {
-					case "program":
-						m.handleProgram(command.Args)
-
-					case "workout":
-						m.handleWorkout(command.Args)
-						return m, cmd
-					case "exercise":
-						m.handleExercise(command.Args)
-						return m, cmd
-					case "help":
-						m.screen = "help"
-						return m, cmd
-
-					case "home":
-						m.screen = "home"
-						return m, cmd
-
-					case "quit":
-						return m, tea.Quit
-					}
-				}
-			case "ctrl+c", "esc":
-				return m, tea.Quit
-
-			default:
-
-			}
+		case modeInput:
+			return m.handleInputKey(msg)
 
 		case modeNormal:
-			cmd := commands.HandleKeys(msg.String())
-			fmt.Println(cmd)
+			return m.handleNormalKey(msg)
 		}
 	}
-	m.input, cmd = m.input.Update(msg)
+	return m, cmd
+}
+
+func (m model) handleCommandKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg.String() {
+	case "enter":
+		line := m.input.Value()
+		m.input.SetValue("")
+		m.mode = modeNormal
+		m.inputPurpose = inputNone
+		m.resetInputPrompt()
+		if line == "" {
+			m.status = "command cancelled"
+			return m, cmd
+		}
+		return m.runCommandLine(line)
+	case "ctrl+c":
+		return m, tea.Quit
+	case "esc":
+		m.input.SetValue("")
+		m.mode = modeNormal
+		m.inputPurpose = inputNone
+		m.resetInputPrompt()
+		m.status = "command cancelled"
+		return m, cmd
+	default:
+		m.input, cmd = m.input.Update(msg)
+		return m, cmd
+	}
+}
+
+func (m model) handleInputKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg.String() {
+	case "enter":
+		value := strings.TrimSpace(m.input.Value())
+		m.input.SetValue("")
+		purpose := m.inputPurpose
+		m.mode = modeNormal
+		m.inputPurpose = inputNone
+		m.resetInputPrompt()
+		if value == "" {
+			m.status = "add cancelled"
+			return m, cmd
+		}
+		m.submitInput(purpose, value)
+		return m, cmd
+	case "ctrl+c":
+		return m, tea.Quit
+	case "esc":
+		m.input.SetValue("")
+		m.mode = modeNormal
+		m.inputPurpose = inputNone
+		m.resetInputPrompt()
+		m.status = "add cancelled"
+		return m, cmd
+	default:
+		m.input, cmd = m.input.Update(msg)
+		return m, cmd
+	}
+}
+
+func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg.String() {
+	case ":":
+		m.mode = modeCmd
+		m.inputPurpose = inputNone
+		m.input.SetValue("")
+		m.input.Placeholder = "program list"
+		m.input.Prompt = "spotr $ "
+		m.status = "command mode"
+	case "a":
+		m.startAdd()
+	case "?":
+		m.screen = "help"
+		m.status = "help"
+	case "home", "b", "esc":
+		m.screen = "home"
+		m.status = "home"
+	case "q", "ctrl+c":
+		return m, tea.Quit
+	default:
+		m.status = "press : for commands, a to add, ? for help"
+	}
+	return m, cmd
+}
+
+func (m *model) startAdd() {
+	m.mode = modeInput
+	m.input.SetValue("")
+	m.screen = "program"
+
+	switch {
+	case m.activeWorkout.WorkoutId != 0:
+		m.inputPurpose = inputAddExercise
+		m.input.Placeholder = "exercise name [sets] [reps]"
+		m.input.Prompt = "add exercise $ "
+		m.status = "adding exercise"
+	case m.activeProgram.ProgramId != 0:
+		m.inputPurpose = inputAddWorkout
+		m.input.Placeholder = "workout name"
+		m.input.Prompt = "add workout $ "
+		m.status = "adding workout"
+	default:
+		m.inputPurpose = inputAddProgram
+		m.input.Placeholder = "program name"
+		m.input.Prompt = "add program $ "
+		m.status = "adding program"
+	}
+}
+
+func (m *model) submitInput(purpose inputPurpose, value string) {
+	args := strings.Fields(value)
+	switch purpose {
+	case inputAddProgram:
+		m.handleProgram(append([]string{"add"}, args...))
+	case inputAddWorkout:
+		m.handleWorkout(append([]string{"add"}, args...))
+	case inputAddExercise:
+		m.handleExercise(append([]string{"add"}, args...))
+	default:
+		m.status = "nothing to submit"
+	}
+}
+
+func (m *model) resetInputPrompt() {
+	m.input.Placeholder = "press : to type a command"
+	m.input.Prompt = ""
+}
+
+func (m model) runCommandLine(line string) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	command, ok := commands.Parse(line)
+	if !ok {
+		m.status = "error parsing command"
+		return m, cmd
+	}
+	resolved, status := commands.Resolve(command)
+
+	if !status {
+		m.status = fmt.Sprintf("Command not defined: %v", resolved)
+		return m, cmd
+	}
+	switch resolved {
+	case "program":
+		m.handleProgram(command.Args)
+
+	case "workout":
+		m.handleWorkout(command.Args)
+		return m, cmd
+	case "exercise":
+		m.handleExercise(command.Args)
+		return m, cmd
+	case "help":
+		m.screen = "help"
+		return m, cmd
+
+	case "home":
+		m.screen = "home"
+		return m, cmd
+
+	case "quit":
+		return m, tea.Quit
+	}
 	return m, cmd
 }
 
