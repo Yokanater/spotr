@@ -7,11 +7,11 @@ type KeyBinding struct {
 
 var KeyBindings = []KeyBinding{
 	{
-		Key:    "j/down",
+		Key:    "down",
 		Action: "move down",
 	},
 	{
-		Key:    "k/up",
+		Key:    "up",
 		Action: "move up",
 	},
 	{
@@ -44,6 +44,6 @@ var KeyBindings = []KeyBinding{
 	},
 	{
 		Key:    "q",
-		Action: "quit",
+		Action: "confirm quit",
 	},
 }

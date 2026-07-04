@@ -39,6 +39,7 @@ const (
 	modeNormal mode = "normal"
 	modeInput  mode = "input"
 	modeCmd    mode = "command"
+	modeQuit   mode = "quit"
 )
 
 const (
@@ -127,6 +128,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.input.SetWidth(max(1, min(m.theme.InputMax, m.appW-m.theme.PadX)))
 	case tea.KeyPressMsg:
 		switch m.mode {
+		case modeQuit:
+			return m.handleQuitKey(msg)
+
 		case modeCmd:
 			return m.handleCommandKey(msg)
 
@@ -155,7 +159,8 @@ func (m model) handleCommandKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		}
 		return m.runCommandLine(line)
 	case "ctrl+c":
-		return m, tea.Quit
+		m.requestQuit()
+		return m, cmd
 	case "esc":
 		m.input.SetValue("")
 		m.mode = modeNormal
@@ -186,7 +191,8 @@ func (m model) handleInputKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.submitInput(purpose, value)
 		return m, cmd
 	case "ctrl+c":
-		return m, tea.Quit
+		m.requestQuit()
+		return m, cmd
 	case "esc":
 		m.input.SetValue("")
 		m.mode = modeNormal
@@ -212,9 +218,9 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.status = "command mode"
 	case "a":
 		m.startAdd()
-	case "j", "down":
+	case "down":
 		m.moveCursor(1)
-	case "k", "up":
+	case "up":
 		m.moveCursor(-1)
 	case "enter":
 		m.openSelected()
@@ -226,11 +232,34 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "b", "esc":
 		m.goBack()
 	case "q", "ctrl+c":
-		return m, tea.Quit
+		m.requestQuit()
 	default:
 		m.status = m.normalHelp()
 	}
 	return m, cmd
+}
+
+func (m model) handleQuitKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg.String() {
+	case "y", "Y", "enter":
+		return m, tea.Quit
+	case "n", "N", "esc", "q":
+		m.mode = modeNormal
+		m.status = m.normalHelp()
+		return m, cmd
+	default:
+		m.status = "quit? y/n"
+		return m, cmd
+	}
+}
+
+func (m *model) requestQuit() {
+	m.mode = modeQuit
+	m.inputPurpose = inputNone
+	m.input.SetValue("")
+	m.resetInputPrompt()
+	m.status = "quit? y/n"
 }
 
 func (m *model) moveCursor(delta int) {
@@ -375,13 +404,13 @@ func (m model) currentLevel() screen {
 func (m model) normalHelp() string {
 	switch m.currentLevel() {
 	case screenPrograms:
-		return "j/k move, enter open, a add program, : command"
+		return "up/down move, enter open, a add program, : command"
 	case screenWorkouts:
-		return "j/k move, enter open, b programs, a add workout, : command"
+		return "up/down move, enter open, b programs, a add workout, : command"
 	case screenExercises:
-		return "j/k move, enter select, b workouts, a add exercise, : command"
+		return "up/down move, enter select, b workouts, a add exercise, : command"
 	default:
-		return "j/k move, enter open, b back, a add, : command"
+		return "up/down move, enter open, b back, a add, : command"
 	}
 }
 
