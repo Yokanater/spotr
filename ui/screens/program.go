@@ -34,12 +34,13 @@ func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.W
 	workoutPanel := renderProgramSection(styles, "02 workouts", workoutNames(workouts), "press a to add workout", workoutCursor)
 	exercisePanel := renderExerciseSection(styles, "03 exercises", exercises, "press a to add exercise", exerciseCursor)
 
-	panels := lipgloss.JoinHorizontal(lipgloss.Top, programPanel, workoutPanel, exercisePanel)
+	panels := visiblePanels(styles, activeProgram, activeWorkout, programPanel, workoutPanel, exercisePanel)
+	panelBlock := lipgloss.JoinHorizontal(lipgloss.Top, panels...)
 	if styles.ProgramTitle.GetWidth() < 82 {
-		panels = lipgloss.JoinVertical(lipgloss.Left, orderedPanels(activeProgram, activeWorkout, programPanel, workoutPanel, exercisePanel)...)
+		panelBlock = lipgloss.JoinVertical(lipgloss.Left, panels...)
 	}
 	footer := styles.ProgramSubtitle.Render(actionHint(activeProgram, activeWorkout))
-	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "program"), "", title, subtitle, "", panels, "", footer)
+	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "program"), "", title, subtitle, "", panelBlock, "", footer)
 }
 
 func actionHint(activeProgram data.Program, activeWorkout data.Workout) string {
@@ -52,14 +53,24 @@ func actionHint(activeProgram data.Program, activeWorkout data.Workout) string {
 	return "a add program   enter open program   : command"
 }
 
-func orderedPanels(activeProgram data.Program, activeWorkout data.Workout, programPanel string, workoutPanel string, exercisePanel string) []string {
+func visiblePanels(styles theme.Styles, activeProgram data.Program, activeWorkout data.Workout, programPanel string, workoutPanel string, exercisePanel string) []string {
+	if styles.ProgramTitle.GetWidth() < 82 {
+		if activeWorkout.WorkoutId != 0 {
+			return []string{exercisePanel}
+		}
+		if activeProgram.ProgramId != 0 {
+			return []string{workoutPanel}
+		}
+		return []string{programPanel}
+	}
+
 	if activeWorkout.WorkoutId != 0 {
-		return []string{exercisePanel, workoutPanel, programPanel}
+		return []string{programPanel, workoutPanel, exercisePanel}
 	}
 	if activeProgram.ProgramId != 0 {
-		return []string{workoutPanel, programPanel, exercisePanel}
+		return []string{programPanel, workoutPanel}
 	}
-	return []string{programPanel, workoutPanel, exercisePanel}
+	return []string{programPanel}
 }
 
 func renderExerciseSection(styles theme.Styles, title string, exercises []data.Exercise, emptyHint string, cursor int) string {
