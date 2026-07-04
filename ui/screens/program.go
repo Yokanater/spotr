@@ -30,16 +30,26 @@ func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.W
 	}
 
 	subtitle := styles.ProgramSubtitle.Render(strings.Join(context, " / "))
-	programPanel := renderProgramSection(styles, "01 programs", programNames(programs), "program list", programCursor)
-	workoutPanel := renderProgramSection(styles, "02 workouts", workoutNames(workouts), "workout list", workoutCursor)
-	exercisePanel := renderExerciseSection(styles, "03 exercises", exercises, "exercise list", exerciseCursor)
+	programPanel := renderProgramSection(styles, "01 programs", programNames(programs), "press a to add program", programCursor)
+	workoutPanel := renderProgramSection(styles, "02 workouts", workoutNames(workouts), "press a to add workout", workoutCursor)
+	exercisePanel := renderExerciseSection(styles, "03 exercises", exercises, "press a to add exercise", exerciseCursor)
 
 	panels := lipgloss.JoinHorizontal(lipgloss.Top, programPanel, workoutPanel, exercisePanel)
 	if styles.ProgramTitle.GetWidth() < 82 {
 		panels = lipgloss.JoinVertical(lipgloss.Left, orderedPanels(activeProgram, activeWorkout, programPanel, workoutPanel, exercisePanel)...)
 	}
-	footer := styles.ProgramSubtitle.Render("program add <name>  /  workout add <name>  /  exercise add <name> [sets] [reps]")
+	footer := styles.ProgramSubtitle.Render(actionHint(activeProgram, activeWorkout))
 	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "program"), "", title, subtitle, "", panels, "", footer)
+}
+
+func actionHint(activeProgram data.Program, activeWorkout data.Workout) string {
+	if activeWorkout.WorkoutId != 0 {
+		return "a add exercise   enter select exercise   b back to workouts   : command"
+	}
+	if activeProgram.ProgramId != 0 {
+		return "a add workout   enter open workout   b back to programs   : command"
+	}
+	return "a add program   enter open program   : command"
 }
 
 func orderedPanels(activeProgram data.Program, activeWorkout data.Workout, programPanel string, workoutPanel string, exercisePanel string) []string {
@@ -57,7 +67,7 @@ func renderExerciseSection(styles theme.Styles, title string, exercises []data.E
 	lines = append(lines, styles.ProgramPanelTitle.Render(title))
 	lines = append(lines, "")
 	if len(exercises) == 0 {
-		lines = append(lines, styles.ProgramEmpty.Render("run: "+emptyHint))
+		lines = append(lines, styles.ProgramEmpty.Render(emptyHint))
 		return styles.ProgramPanel.Render(strings.Join(lines, "\n"))
 	}
 
@@ -101,7 +111,7 @@ func renderProgramSection(styles theme.Styles, title string, values []string, em
 	lines = append(lines, styles.ProgramPanelTitle.Render(title))
 	lines = append(lines, "")
 	if len(values) == 0 {
-		lines = append(lines, styles.ProgramEmpty.Render("run: "+emptyHint))
+		lines = append(lines, styles.ProgramEmpty.Render(emptyHint))
 		return styles.ProgramPanel.Render(strings.Join(lines, "\n"))
 	}
 

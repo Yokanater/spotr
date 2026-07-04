@@ -228,7 +228,7 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "q", "ctrl+c":
 		return m, tea.Quit
 	default:
-		m.status = "j/k move, enter open, b back, a add, : command"
+		m.status = m.normalHelp()
 	}
 	return m, cmd
 }
@@ -279,7 +279,12 @@ func (m *model) openSelected() {
 		m.workoutCursor = 0
 		m.exerciseCursor = 0
 		m.exercises = nil
-		m.status = "selected program " + program.ProgramName
+		if len(m.workouts) == 0 {
+			m.startAddWorkout()
+			m.status = "no workouts in " + program.ProgramName + ". add the first workout"
+			return
+		}
+		m.status = "selected program " + program.ProgramName + ". " + m.normalHelp()
 	case screenWorkouts:
 		if len(m.workouts) == 0 {
 			m.status = "no workouts yet. press a to add one"
@@ -294,7 +299,11 @@ func (m *model) openSelected() {
 		}
 		m.activeExercise = data.Exercise{}
 		m.exerciseCursor = 0
-		m.status = "selected workout " + workout.Name
+		if len(m.exercises) == 0 {
+			m.status = "selected workout " + workout.Name + ". press a to add an exercise"
+			return
+		}
+		m.status = "selected workout " + workout.Name + ". " + m.normalHelp()
 	case screenExercises:
 		if len(m.exercises) == 0 {
 			m.status = "no exercises yet. press a to add one"
@@ -303,7 +312,7 @@ func (m *model) openSelected() {
 		m.exerciseCursor = clampIndex(m.exerciseCursor, len(m.exercises))
 		exercise := m.exercises[m.exerciseCursor]
 		m.activeExercise = exercise
-		m.status = "selected exercise " + exercise.Name
+		m.status = "selected exercise " + exercise.Name + ". " + m.normalHelp()
 	}
 }
 
@@ -363,6 +372,19 @@ func (m model) currentLevel() screen {
 	return screenPrograms
 }
 
+func (m model) normalHelp() string {
+	switch m.currentLevel() {
+	case screenPrograms:
+		return "j/k move, enter open, a add program, : command"
+	case screenWorkouts:
+		return "j/k move, enter open, b programs, a add workout, : command"
+	case screenExercises:
+		return "j/k move, enter select, b workouts, a add exercise, : command"
+	default:
+		return "j/k move, enter open, b back, a add, : command"
+	}
+}
+
 func (m *model) loadPrograms() error {
 	programs, err := m.store.ListPrograms()
 	if err != nil {
@@ -400,21 +422,42 @@ func (m *model) startAdd() {
 
 	switch {
 	case m.activeWorkout.WorkoutId != 0:
-		m.inputPurpose = inputAddExercise
-		m.input.Placeholder = "exercise name [sets] [reps]"
-		m.input.Prompt = "add exercise $ "
-		m.status = "adding exercise"
+		m.startAddExercise()
 	case m.activeProgram.ProgramId != 0:
-		m.inputPurpose = inputAddWorkout
-		m.input.Placeholder = "workout name"
-		m.input.Prompt = "add workout $ "
-		m.status = "adding workout"
+		m.startAddWorkout()
 	default:
-		m.inputPurpose = inputAddProgram
-		m.input.Placeholder = "program name"
-		m.input.Prompt = "add program $ "
-		m.status = "adding program"
+		m.startAddProgram()
 	}
+}
+
+func (m *model) startAddProgram() {
+	m.mode = modeInput
+	m.input.SetValue("")
+	m.screen = screenProgram
+	m.inputPurpose = inputAddProgram
+	m.input.Placeholder = "program name"
+	m.input.Prompt = "add program $ "
+	m.status = "adding program"
+}
+
+func (m *model) startAddWorkout() {
+	m.mode = modeInput
+	m.input.SetValue("")
+	m.screen = screenProgram
+	m.inputPurpose = inputAddWorkout
+	m.input.Placeholder = "workout name"
+	m.input.Prompt = "add workout $ "
+	m.status = "adding workout"
+}
+
+func (m *model) startAddExercise() {
+	m.mode = modeInput
+	m.input.SetValue("")
+	m.screen = screenProgram
+	m.inputPurpose = inputAddExercise
+	m.input.Placeholder = "exercise name [sets] [reps]"
+	m.input.Prompt = "add exercise $ "
+	m.status = "adding exercise"
 }
 
 func (m *model) submitInput(purpose inputPurpose, value string) {
@@ -562,6 +605,11 @@ func (m *model) handleProgram(args []string) {
 		m.exercises = nil
 		m.workoutCursor = 0
 		m.exerciseCursor = 0
+		if len(m.workouts) == 0 {
+			m.startAddWorkout()
+			m.status = "no workouts in " + program.ProgramName + ". add the first workout"
+			return
+		}
 		m.status = "Selected program " + program.ProgramName
 
 	default:
