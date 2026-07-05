@@ -1,6 +1,7 @@
 package main
 
 import (
+	"database/sql"
 	"fmt"
 	"os"
 	"ruffnut/commands"
@@ -531,6 +532,12 @@ func (m model) runCommandLine(line string) (tea.Model, tea.Cmd) {
 	case "exercise":
 		m.handleExercise(command.Args)
 		return m, cmd
+	case "log":
+		m.handleLog(command.Args)
+		return m, cmd
+	case "history":
+		m.handleHistory(command.Args)
+		return m, cmd
 	case "help":
 		m.screen = screenHelp
 		return m, cmd
@@ -801,6 +808,235 @@ func (m *model) handleExercise(args []string) {
 	default:
 		m.status = fmt.Sprintf("unknown exercise command: %s", cmd)
 	}
+}
+
+func (m *model) handleLog(args []string) {
+	if m.activeWorkout.WorkoutId == 0 {
+		m.status = "select a workout first: workout select <id|name>"
+		return
+	}
+	if len(args) == 0 {
+		m.status = "usage: log start | log add [exercise] <sets> <reps> [weight] [notes] | log finish [notes] | log current"
+		return
+	}
+
+	m.screen = screenProgram
+	switch args[0] {
+	case "start":
+		session, err := m.store.StartGymSession(m.activeWorkout)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.status = fmt.Sprintf("Started session #%d for %s", session.SessionId, m.activeWorkout.Name)
+
+	case "add":
+		exercise, sets, reps, weight, notes, err := m.parseLogAddArgs(args[1:])
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		session, err := m.store.ActiveGymSession(m.activeWorkout)
+		if err == sql.ErrNoRows {
+			m.status = "start a session first: log start"
+			return
+		}
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		if err := m.store.AddGymSessionEntry(session, exercise, sets, reps, weight, notes); err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.status = "Logged " + formatSessionEntry(data.GymSessionEntry{Exercise: exercise.Name, Sets: sets, Reps: reps, Weight: weight, Notes: notes})
+
+	case "current":
+		session, err := m.store.ActiveGymSession(m.activeWorkout)
+		if err == sql.ErrNoRows {
+			m.status = "no active session"
+			return
+		}
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		entries, err := m.store.ListGymSessionEntries(session)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.status = fmt.Sprintf("Session #%d started %s, %d entries", session.SessionId, session.StartedAt, len(entries))
+
+	case "finish", "save":
+		session, err := m.store.ActiveGymSession(m.activeWorkout)
+		if err == sql.ErrNoRows {
+			m.status = "no active session"
+			return
+		}
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		notes := strings.Join(args[1:], " ")
+		if err := m.store.FinishGymSession(session, notes); err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.status = fmt.Sprintf("Finished session #%d", session.SessionId)
+
+	default:
+		m.status = fmt.Sprintf("unknown log command: %s", args[0])
+	}
+}
+
+func (m *model) handleHistory(args []string) {
+	if m.activeWorkout.WorkoutId == 0 {
+		m.status = "select a workout first: workout select <id|name>"
+		return
+	}
+	if len(args) == 0 {
+		m.status = "usage: history list [limit] | history show <session-id>"
+		return
+	}
+
+	m.screen = screenProgram
+	switch args[0] {
+	case "list":
+		limit := 5
+		if len(args) >= 2 {
+			parsed, err := strconv.Atoi(args[1])
+			if err != nil {
+				m.status = "limit must be a number"
+				return
+			}
+			limit = parsed
+		}
+		sessions, err := m.store.ListGymSessions(m.activeWorkout, limit)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.status = formatSessionList(sessions)
+
+	case "show":
+		if len(args) < 2 {
+			m.status = "usage: history show <session-id>"
+			return
+		}
+		session, err := m.store.SelectGymSession(args[1], m.activeWorkout)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		entries, err := m.store.ListGymSessionEntries(session)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.status = formatSessionDetail(session, entries)
+
+	default:
+		m.status = fmt.Sprintf("unknown history command: %s", args[0])
+	}
+}
+
+func (m *model) parseLogAddArgs(args []string) (data.Exercise, int, int, float64, string, error) {
+	if len(args) < 2 {
+		return data.Exercise{}, 0, 0, 0, "", fmt.Errorf("usage: log add [exercise] <sets> <reps> [weight] [notes]")
+	}
+
+	exercise := m.activeExercise
+	valueStart := 0
+	if exercise.ExerciseId == 0 || !isInt(args[0]) {
+		if len(args) < 3 {
+			return data.Exercise{}, 0, 0, 0, "", fmt.Errorf("usage: log add [exercise] <sets> <reps> [weight] [notes]")
+		}
+		valueStart = findFirstNumberPair(args)
+		if valueStart <= 0 {
+			return data.Exercise{}, 0, 0, 0, "", fmt.Errorf("sets and reps must be numbers")
+		}
+		selected, err := m.store.SelectExercise(strings.Join(args[:valueStart], " "), m.activeWorkout)
+		if err != nil {
+			return data.Exercise{}, 0, 0, 0, "", err
+		}
+		exercise = selected
+	}
+	if exercise.ExerciseId == 0 {
+		return data.Exercise{}, 0, 0, 0, "", fmt.Errorf("select an exercise first or pass one to log add")
+	}
+
+	sets, reps, err := parseSetReps(args[valueStart], args[valueStart+1])
+	if err != nil {
+		return data.Exercise{}, 0, 0, 0, "", err
+	}
+
+	weight := 0.0
+	notesStart := valueStart + 2
+	if len(args) > notesStart {
+		parsedWeight, err := strconv.ParseFloat(args[notesStart], 64)
+		if err == nil {
+			weight = parsedWeight
+			notesStart++
+		}
+	}
+
+	notes := ""
+	if len(args) > notesStart {
+		notes = strings.Join(args[notesStart:], " ")
+	}
+	return exercise, sets, reps, weight, notes, nil
+}
+
+func findFirstNumberPair(args []string) int {
+	for i := 0; i < len(args)-1; i++ {
+		if isInt(args[i]) && isInt(args[i+1]) {
+			return i
+		}
+	}
+	return -1
+}
+
+func isInt(value string) bool {
+	_, err := strconv.Atoi(value)
+	return err == nil
+}
+
+func formatSessionList(sessions []data.GymSession) string {
+	if len(sessions) == 0 {
+		return "no sessions yet"
+	}
+	parts := make([]string, 0, len(sessions))
+	for _, session := range sessions {
+		state := "active"
+		if session.EndedAt != "" {
+			state = "done"
+		}
+		parts = append(parts, fmt.Sprintf("#%d %s %s", session.SessionId, state, session.StartedAt))
+	}
+	return strings.Join(parts, " | ")
+}
+
+func formatSessionDetail(session data.GymSession, entries []data.GymSessionEntry) string {
+	if len(entries) == 0 {
+		return fmt.Sprintf("Session #%d has no entries", session.SessionId)
+	}
+	parts := make([]string, 0, len(entries))
+	for _, entry := range entries {
+		parts = append(parts, formatSessionEntry(entry))
+	}
+	return fmt.Sprintf("Session #%d: %s", session.SessionId, strings.Join(parts, " | "))
+}
+
+func formatSessionEntry(entry data.GymSessionEntry) string {
+	value := fmt.Sprintf("%s %dx%d", entry.Exercise, entry.Sets, entry.Reps)
+	if entry.Weight > 0 {
+		value += fmt.Sprintf(" @ %.1f", entry.Weight)
+	}
+	if entry.Notes != "" {
+		value += " (" + entry.Notes + ")"
+	}
+	return value
 }
 
 func parseSetReps(setsArg string, repsArg string) (int, int, error) {

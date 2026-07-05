@@ -6,6 +6,8 @@ import (
 	"strings"
 	"testing"
 
+	"ruffnut/data"
+
 	_ "modernc.org/sqlite"
 )
 
@@ -58,6 +60,67 @@ func TestNewSQLiteMigratesLegacyWorkoutUniqueConstraint(t *testing.T) {
 	execStoreSQL(t, st, `INSERT INTO programs (name, created_at) VALUES ('upper lower', '2026-06-30T00:00:00Z')`)
 	execStoreSQL(t, st, `INSERT INTO workouts (program_id, name, created_at) VALUES (1, 'push', '2026-06-30T00:00:00Z')`)
 	execStoreSQL(t, st, `INSERT INTO workouts (program_id, name, created_at) VALUES (2, 'push', '2026-06-30T00:00:00Z')`)
+}
+
+func TestGymSessionLifecycle(t *testing.T) {
+	st, err := NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	if err != nil {
+		t.Fatalf("NewSQLite() error = %v", err)
+	}
+	defer st.Close()
+
+	programID, err := st.CreateProgram("ppl")
+	if err != nil {
+		t.Fatalf("CreateProgram() error = %v", err)
+	}
+	program := data.Program{ProgramId: programID, ProgramName: "ppl"}
+	if err := st.CreateWorkout("push", program); err != nil {
+		t.Fatalf("CreateWorkout() error = %v", err)
+	}
+	workout, err := st.SelectWorkout("push", program)
+	if err != nil {
+		t.Fatalf("SelectWorkout() error = %v", err)
+	}
+	if err := st.CreateExercise("bench", 3, 10, workout); err != nil {
+		t.Fatalf("CreateExercise() error = %v", err)
+	}
+	exercise, err := st.SelectExercise("bench", workout)
+	if err != nil {
+		t.Fatalf("SelectExercise() error = %v", err)
+	}
+
+	session, err := st.StartGymSession(workout)
+	if err != nil {
+		t.Fatalf("StartGymSession() error = %v", err)
+	}
+	if session.SessionId == 0 || session.WorkoutId != workout.WorkoutId {
+		t.Fatalf("StartGymSession() = %+v; want persisted workout session", session)
+	}
+	if _, err := st.StartGymSession(workout); err == nil || !strings.Contains(err.Error(), "active session already started") {
+		t.Fatalf("StartGymSession() duplicate error = %v; want active session error", err)
+	}
+
+	if err := st.AddGymSessionEntry(session, exercise, 3, 8, 135, "felt good"); err != nil {
+		t.Fatalf("AddGymSessionEntry() error = %v", err)
+	}
+	entries, err := st.ListGymSessionEntries(session)
+	if err != nil {
+		t.Fatalf("ListGymSessionEntries() error = %v", err)
+	}
+	if len(entries) != 1 || entries[0].Exercise != "bench" || entries[0].Sets != 3 || entries[0].Reps != 8 || entries[0].Weight != 135 {
+		t.Fatalf("ListGymSessionEntries() = %+v; want bench 3x8 @ 135", entries)
+	}
+
+	if err := st.FinishGymSession(session, "solid push day"); err != nil {
+		t.Fatalf("FinishGymSession() error = %v", err)
+	}
+	sessions, err := st.ListGymSessions(workout, 10)
+	if err != nil {
+		t.Fatalf("ListGymSessions() error = %v", err)
+	}
+	if len(sessions) != 1 || sessions[0].EndedAt == "" || sessions[0].Notes != "solid push day" {
+		t.Fatalf("ListGymSessions() = %+v; want finished session with notes", sessions)
+	}
 }
 
 func openLegacyDB(t *testing.T, path string) *sql.DB {

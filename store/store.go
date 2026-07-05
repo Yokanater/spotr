@@ -91,6 +91,31 @@ func (s *Store) init() error {
 		return err
 	}
 
+	if _, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS gym_sessions (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			workout_id INTEGER NOT NULL REFERENCES workouts(id),
+			started_at TEXT NOT NULL,
+			ended_at TEXT,
+			notes TEXT NOT NULL DEFAULT ''
+		);`); err != nil {
+		return err
+	}
+
+	if _, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS gym_session_entries (
+			id INTEGER PRIMARY KEY AUTOINCREMENT,
+			session_id INTEGER NOT NULL REFERENCES gym_sessions(id) ON DELETE CASCADE,
+			exercise_id INTEGER NOT NULL REFERENCES exercises(id),
+			sets INTEGER NOT NULL,
+			reps INTEGER NOT NULL,
+			weight REAL NOT NULL DEFAULT 0,
+			notes TEXT NOT NULL DEFAULT '',
+			created_at TEXT NOT NULL
+		);`); err != nil {
+		return err
+	}
+
 	if err := s.migrate(); err != nil {
 		return err
 	}
@@ -432,4 +457,157 @@ func (s *Store) UpdateExerciseDefaults(exercise data.Exercise, sets int, reps in
 		exercise.WorkoutId,
 	)
 	return err
+}
+
+func (s *Store) StartGymSession(workout data.Workout) (data.GymSession, error) {
+	if existing, err := s.ActiveGymSession(workout); err == nil {
+		return existing, fmt.Errorf("active session already started at %s", existing.StartedAt)
+	} else if err != sql.ErrNoRows {
+		return data.GymSession{}, err
+	}
+
+	startedAt := time.Now().UTC().Format(time.RFC3339)
+	res, err := s.db.Exec(
+		`INSERT INTO gym_sessions (workout_id, started_at) VALUES (?, ?)`,
+		workout.WorkoutId,
+		startedAt,
+	)
+	if err != nil {
+		return data.GymSession{}, err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return data.GymSession{}, err
+	}
+	return data.GymSession{SessionId: id, WorkoutId: workout.WorkoutId, StartedAt: startedAt}, nil
+}
+
+func (s *Store) ActiveGymSession(workout data.Workout) (data.GymSession, error) {
+	var session data.GymSession
+	var endedAt sql.NullString
+	err := s.db.QueryRow(
+		`SELECT id, workout_id, started_at, ended_at, notes
+		FROM gym_sessions
+		WHERE workout_id = ? AND ended_at IS NULL
+		ORDER BY started_at DESC
+		LIMIT 1`,
+		workout.WorkoutId,
+	).Scan(&session.SessionId, &session.WorkoutId, &session.StartedAt, &endedAt, &session.Notes)
+	if err != nil {
+		return data.GymSession{}, err
+	}
+	if endedAt.Valid {
+		session.EndedAt = endedAt.String
+	}
+	return session, nil
+}
+
+func (s *Store) FinishGymSession(session data.GymSession, notes string) error {
+	endedAt := time.Now().UTC().Format(time.RFC3339)
+	_, err := s.db.Exec(
+		`UPDATE gym_sessions SET ended_at = ?, notes = ? WHERE id = ? AND ended_at IS NULL`,
+		endedAt,
+		notes,
+		session.SessionId,
+	)
+	return err
+}
+
+func (s *Store) AddGymSessionEntry(session data.GymSession, exercise data.Exercise, sets int, reps int, weight float64, notes string) error {
+	createdAt := time.Now().UTC().Format(time.RFC3339)
+	_, err := s.db.Exec(
+		`INSERT INTO gym_session_entries (session_id, exercise_id, sets, reps, weight, notes, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		session.SessionId,
+		exercise.ExerciseId,
+		sets,
+		reps,
+		weight,
+		notes,
+		createdAt,
+	)
+	return err
+}
+
+func (s *Store) ListGymSessions(workout data.Workout, limit int) ([]data.GymSession, error) {
+	if limit <= 0 {
+		limit = 10
+	}
+	sessions := []data.GymSession{}
+	rows, err := s.db.Query(
+		`SELECT id, workout_id, started_at, ended_at, notes
+		FROM gym_sessions
+		WHERE workout_id = ?
+		ORDER BY started_at DESC
+		LIMIT ?`,
+		workout.WorkoutId,
+		limit,
+	)
+	if err != nil {
+		return sessions, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var session data.GymSession
+		var endedAt sql.NullString
+		if err := rows.Scan(&session.SessionId, &session.WorkoutId, &session.StartedAt, &endedAt, &session.Notes); err != nil {
+			return sessions, err
+		}
+		if endedAt.Valid {
+			session.EndedAt = endedAt.String
+		}
+		sessions = append(sessions, session)
+	}
+	if err := rows.Err(); err != nil {
+		return sessions, err
+	}
+	return sessions, nil
+}
+
+func (s *Store) SelectGymSession(id string, workout data.Workout) (data.GymSession, error) {
+	var session data.GymSession
+	var endedAt sql.NullString
+	err := s.db.QueryRow(
+		`SELECT id, workout_id, started_at, ended_at, notes
+		FROM gym_sessions
+		WHERE id = ? AND workout_id = ?`,
+		id,
+		workout.WorkoutId,
+	).Scan(&session.SessionId, &session.WorkoutId, &session.StartedAt, &endedAt, &session.Notes)
+	if err != nil {
+		return data.GymSession{}, err
+	}
+	if endedAt.Valid {
+		session.EndedAt = endedAt.String
+	}
+	return session, nil
+}
+
+func (s *Store) ListGymSessionEntries(session data.GymSession) ([]data.GymSessionEntry, error) {
+	entries := []data.GymSessionEntry{}
+	rows, err := s.db.Query(
+		`SELECT se.id, se.session_id, se.exercise_id, e.name, se.sets, se.reps, se.weight, se.notes
+		FROM gym_session_entries se
+		JOIN exercises e ON e.id = se.exercise_id
+		WHERE se.session_id = ?
+		ORDER BY se.id`,
+		session.SessionId,
+	)
+	if err != nil {
+		return entries, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var entry data.GymSessionEntry
+		if err := rows.Scan(&entry.EntryId, &entry.SessionId, &entry.ExerciseId, &entry.Exercise, &entry.Sets, &entry.Reps, &entry.Weight, &entry.Notes); err != nil {
+			return entries, err
+		}
+		entries = append(entries, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return entries, err
+	}
+	return entries, nil
 }
