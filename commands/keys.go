@@ -23,6 +23,18 @@ var KeyBindings = []KeyBinding{
 		Action: "add item",
 	},
 	{
+		Key:    "s",
+		Action: "start workout log",
+	},
+	{
+		Key:    "l",
+		Action: "log actual sets and reps",
+	},
+	{
+		Key:    "f",
+		Action: "finish workout log",
+	},
+	{
 		Key:    "e",
 		Action: "edit selected item",
 	},

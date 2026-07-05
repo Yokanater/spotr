@@ -75,3 +75,12 @@ func TestProgramViewShowsProgressivePanels(t *testing.T) {
 		t.Fatalf("ProgramView() rendered exercises before workout selection; view:\n%s", view)
 	}
 }
+
+func TestRenderHeaderShowsLog(t *testing.T) {
+	styles := theme.NewStyles(theme.Default(), 100, 30)
+	view := RenderHeader(styles, "program")
+
+	if !strings.Contains(view, "log") {
+		t.Fatalf("RenderHeader() did not render log nav item; view:\n%s", view)
+	}
+}

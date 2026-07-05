@@ -48,6 +48,7 @@ const (
 	inputAddProgram  inputPurpose = "add_program"
 	inputAddWorkout  inputPurpose = "add_workout"
 	inputAddExercise inputPurpose = "add_exercise"
+	inputLogExercise inputPurpose = "log_exercise"
 )
 
 const (
@@ -186,7 +187,7 @@ func (m model) handleInputKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.inputPurpose = inputNone
 		m.resetInputPrompt()
 		if value == "" {
-			m.status = "add cancelled"
+			m.status = inputCancelledStatus(purpose)
 			return m, cmd
 		}
 		m.submitInput(purpose, value)
@@ -195,11 +196,12 @@ func (m model) handleInputKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.requestQuit()
 		return m, cmd
 	case "esc":
+		purpose := m.inputPurpose
 		m.input.SetValue("")
 		m.mode = modeNormal
 		m.inputPurpose = inputNone
 		m.resetInputPrompt()
-		m.status = "add cancelled"
+		m.status = inputCancelledStatus(purpose)
 		return m, cmd
 	default:
 		m.input, cmd = m.input.Update(msg)
@@ -219,6 +221,12 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.status = "command mode"
 	case "a":
 		m.startAdd()
+	case "s":
+		m.startLogSession()
+	case "l":
+		m.startLogExerciseInput()
+	case "f":
+		m.finishLogSession()
 	case "down":
 		m.moveCursor(1)
 	case "up":
@@ -407,12 +415,137 @@ func (m model) normalHelp() string {
 	case screenPrograms:
 		return "up/down move, enter open, a add program, : command"
 	case screenWorkouts:
-		return "up/down move, enter open, b programs, a add workout, : command"
+		return "up/down move, enter open, s start log, f finish log, : command"
 	case screenExercises:
-		return "up/down move, enter select, b workouts, a add exercise, : command"
+		return "up/down move, l log actual sets, s start log, f finish log, : command"
 	default:
 		return "up/down move, enter open, b back, a add, : command"
 	}
+}
+
+func (m *model) startLogSession() {
+	m.screen = screenProgram
+	if m.activeWorkout.WorkoutId == 0 {
+		m.status = "select a workout first"
+		return
+	}
+
+	session, err := m.store.StartGymSession(m.activeWorkout)
+	if err != nil {
+		m.status = err.Error()
+		return
+	}
+	m.status = fmt.Sprintf("Started session #%d for %s", session.SessionId, m.activeWorkout.Name)
+}
+
+func (m *model) startLogExerciseInput() {
+	m.screen = screenProgram
+	exercise, ok := m.exerciseForLogging()
+	if !ok {
+		return
+	}
+
+	suggestion := ""
+	if exercise.Sets > 0 || exercise.Reps > 0 {
+		suggestion = fmt.Sprintf("%d %d", exercise.Sets, exercise.Reps)
+	}
+
+	m.mode = modeInput
+	m.inputPurpose = inputLogExercise
+	m.input.SetValue(suggestion)
+	m.input.Placeholder = "sets reps [weight] [notes]"
+	m.input.Prompt = "log " + exercise.Name + " $ "
+	if suggestion != "" {
+		m.status = fmt.Sprintf("suggested %dx%d. edit with what you actually did", exercise.Sets, exercise.Reps)
+		return
+	}
+	m.status = "enter actual sets and reps for " + exercise.Name
+}
+
+func (m *model) submitLoggedExercise(value string) {
+	exercise := m.activeExercise
+	if exercise.ExerciseId == 0 {
+		m.status = "choose an exercise to log"
+		return
+	}
+
+	sets, reps, weight, notes, err := parseLoggedExerciseValue(value)
+	if err != nil {
+		m.status = err.Error()
+		return
+	}
+
+	session, started, err := m.activeOrStartedSession()
+	if err != nil {
+		m.status = err.Error()
+		return
+	}
+	if err := m.store.AddGymSessionEntry(session, exercise, sets, reps, weight, notes); err != nil {
+		m.status = err.Error()
+		return
+	}
+
+	entry := data.GymSessionEntry{Exercise: exercise.Name, Sets: sets, Reps: reps, Weight: weight, Notes: notes}
+	if started {
+		m.status = fmt.Sprintf("Started session #%d. Logged %s", session.SessionId, formatSessionEntry(entry))
+		return
+	}
+	m.status = "Logged " + formatSessionEntry(entry)
+}
+
+func (m *model) finishLogSession() {
+	m.screen = screenProgram
+	if m.activeWorkout.WorkoutId == 0 {
+		m.status = "select a workout first"
+		return
+	}
+
+	session, err := m.store.ActiveGymSession(m.activeWorkout)
+	if err == sql.ErrNoRows {
+		m.status = "no active session"
+		return
+	}
+	if err != nil {
+		m.status = err.Error()
+		return
+	}
+	if err := m.store.FinishGymSession(session, ""); err != nil {
+		m.status = err.Error()
+		return
+	}
+	m.status = fmt.Sprintf("Finished session #%d", session.SessionId)
+}
+
+func (m *model) exerciseForLogging() (data.Exercise, bool) {
+	if m.activeWorkout.WorkoutId == 0 {
+		m.status = "select a workout first"
+		return data.Exercise{}, false
+	}
+	if len(m.exercises) == 0 {
+		m.status = "no exercises yet. press a to add one"
+		return data.Exercise{}, false
+	}
+
+	m.exerciseCursor = clampIndex(m.exerciseCursor, len(m.exercises))
+	exercise := m.exercises[m.exerciseCursor]
+	m.activeExercise = exercise
+	return exercise, true
+}
+
+func (m *model) activeOrStartedSession() (data.GymSession, bool, error) {
+	session, err := m.store.ActiveGymSession(m.activeWorkout)
+	if err == nil {
+		return session, false, nil
+	}
+	if err != sql.ErrNoRows {
+		return data.GymSession{}, false, err
+	}
+
+	session, err = m.store.StartGymSession(m.activeWorkout)
+	if err != nil {
+		return data.GymSession{}, false, err
+	}
+	return session, true, nil
 }
 
 func (m *model) loadPrograms() error {
@@ -499,9 +632,18 @@ func (m *model) submitInput(purpose inputPurpose, value string) {
 		m.handleWorkout(append([]string{"add"}, args...))
 	case inputAddExercise:
 		m.handleExercise(append([]string{"add"}, args...))
+	case inputLogExercise:
+		m.submitLoggedExercise(value)
 	default:
 		m.status = "nothing to submit"
 	}
+}
+
+func inputCancelledStatus(purpose inputPurpose) string {
+	if purpose == inputLogExercise {
+		return "log cancelled"
+	}
+	return "add cancelled"
 }
 
 func (m *model) resetInputPrompt() {
@@ -1000,6 +1142,40 @@ func findFirstNumberPair(args []string) int {
 func isInt(value string) bool {
 	_, err := strconv.Atoi(value)
 	return err == nil
+}
+
+func parseLoggedExerciseValue(value string) (int, int, float64, string, error) {
+	args := strings.Fields(value)
+	if len(args) < 2 {
+		return 0, 0, 0, "", fmt.Errorf("usage: sets reps [weight] [notes]")
+	}
+
+	sets, reps, err := parseSetReps(args[0], args[1])
+	if err != nil {
+		return 0, 0, 0, "", err
+	}
+	if sets <= 0 {
+		return 0, 0, 0, "", fmt.Errorf("sets must be greater than zero")
+	}
+	if reps <= 0 {
+		return 0, 0, 0, "", fmt.Errorf("reps must be greater than zero")
+	}
+
+	weight := 0.0
+	notesStart := 2
+	if len(args) > notesStart {
+		parsedWeight, err := strconv.ParseFloat(args[notesStart], 64)
+		if err == nil {
+			weight = parsedWeight
+			notesStart++
+		}
+	}
+
+	notes := ""
+	if len(args) > notesStart {
+		notes = strings.Join(args[notesStart:], " ")
+	}
+	return sets, reps, weight, notes, nil
 }
 
 func formatSessionList(sessions []data.GymSession) string {
