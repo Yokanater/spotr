@@ -76,7 +76,10 @@ func renderSessionDetail(styles theme.Styles, session data.GymSession, entries [
 		return styles.ProgramPanel.Width(styles.Box.GetWidth()).Render(strings.Join(lines, "\n"))
 	}
 
-	for _, entry := range entries {
+	for i, entry := range entries {
+		if i > 0 {
+			lines = append(lines, "")
+		}
 		lines = append(lines, styles.ProgramItem.Render(historyEntryLine(entry)))
 		if entry.Notes != "" {
 			lines = append(lines, styles.ProgramEmpty.Render("  "+entry.Notes))
@@ -93,7 +96,10 @@ func renderExerciseHistory(styles theme.Styles, entries []data.GymSessionEntry) 
 		return styles.ProgramPanel.Width(styles.Box.GetWidth()).Render(strings.Join(lines, "\n"))
 	}
 
-	for _, entry := range entries {
+	for i, entry := range entries {
+		if i > 0 {
+			lines = append(lines, "")
+		}
 		id := styles.HelperKey.Render(fmt.Sprintf("ID #%d", entry.SessionId))
 		lines = append(lines, styles.ProgramItem.Render(fmt.Sprintf("%s  %s  %s", id, entry.StartedAt, historyEntryLine(entry))))
 		if entry.Workout != "" {

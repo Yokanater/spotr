@@ -880,22 +880,23 @@ func (m model) View() tea.View {
 	rawInput := m.input.View()
 	input := m.styles.Input.Render(rawInput)
 	status := renderStatus(m.styles, m.status)
+	screenHeight := max(1, m.appH-lipgloss.Height(input)-lipgloss.Height(status)-2)
+	screenStyles := theme.NewStyles(m.theme, m.appW, screenHeight)
 	screen := ""
 	switch m.screen {
 	case screenHome:
-		screen = screens.HomeView(m.styles)
+		screen = screens.HomeView(screenStyles)
 
 	case screenHelp:
-		screen = screens.HelpView(m.styles)
+		screen = screens.HelpView(screenStyles)
 
 	case screenProgram:
-		screen = screens.ProgramView(m.styles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout, m.activeExercise, m.programCursor, m.workoutCursor, m.exerciseCursor)
+		screen = screens.ProgramView(screenStyles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout, m.activeExercise, m.programCursor, m.workoutCursor, m.exerciseCursor)
 
 	case screenHistory:
-		screen = screens.HistoryView(m.styles, m.activeWorkout, m.historyTitle, m.historySessions, m.historyCursor, m.activeSession, m.historyEntries)
+		screen = screens.HistoryView(screenStyles, m.activeWorkout, m.historyTitle, m.historySessions, m.historyCursor, m.activeSession, m.historyEntries)
 
 	}
-	screenHeight := max(1, m.appH-lipgloss.Height(input)-lipgloss.Height(status)-2)
 	screen = lipgloss.NewStyle().
 		Width(m.styles.Box.GetWidth()).
 		MaxHeight(screenHeight).

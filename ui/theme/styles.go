@@ -39,10 +39,10 @@ func NewStyles(t Theme, w int, h int) Styles {
 	}
 	helpRowW := min(contentW, max(12, (contentW-8)/2))
 	panelW := max(12, (contentW-4)/3)
-	programListRows := max(3, h-13)
+	programListRows := max(1, h-13)
 	if contentW < 82 {
 		panelW = contentW
-		programListRows = max(3, (h-13)/3)
+		programListRows = max(1, h-12)
 	}
 	newStyles := Styles{
 

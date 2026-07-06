@@ -39,6 +39,9 @@ func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.W
 	if styles.ProgramTitle.GetWidth() < 82 {
 		panelBlock = lipgloss.JoinVertical(lipgloss.Left, panels...)
 	}
+	if styles.ProgramListRows <= 1 {
+		return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "training"), "", panelBlock)
+	}
 	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "training"), "", title, subtitle, "", panelBlock)
 }
 
@@ -65,7 +68,9 @@ func visiblePanels(styles theme.Styles, activeProgram data.Program, activeWorkou
 func renderExerciseSection(styles theme.Styles, title string, exercises []data.Exercise, emptyHint string, cursor int) string {
 	var lines []string
 	lines = append(lines, styles.ProgramPanelTitle.Render(title))
-	lines = append(lines, "")
+	if styles.ProgramListRows > 1 {
+		lines = append(lines, "")
+	}
 	if len(exercises) == 0 {
 		lines = append(lines, styles.ProgramEmpty.Render(emptyHint))
 		return styles.ProgramPanel.Render(strings.Join(lines, "\n"))
@@ -109,7 +114,9 @@ func renderExerciseSection(styles theme.Styles, title string, exercises []data.E
 func renderProgramSection(styles theme.Styles, title string, values []string, emptyHint string, cursor int) string {
 	var lines []string
 	lines = append(lines, styles.ProgramPanelTitle.Render(title))
-	lines = append(lines, "")
+	if styles.ProgramListRows > 1 {
+		lines = append(lines, "")
+	}
 	if len(values) == 0 {
 		lines = append(lines, styles.ProgramEmpty.Render(emptyHint))
 		return styles.ProgramPanel.Render(strings.Join(lines, "\n"))

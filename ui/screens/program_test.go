@@ -96,6 +96,36 @@ func TestProgramViewDoesNotRenderActionFooter(t *testing.T) {
 	}
 }
 
+func TestProgramViewShowsSelectedExerciseInShortViewport(t *testing.T) {
+	styles := theme.NewStyles(theme.Default(), 60, 8)
+	exercises := []data.Exercise{
+		{ExerciseId: 1, Name: "bench", Sets: 3, Reps: 8},
+		{ExerciseId: 2, Name: "overhead press", Sets: 3, Reps: 8},
+		{ExerciseId: 3, Name: "incline dumbbell press", Sets: 3, Reps: 10},
+		{ExerciseId: 4, Name: "dip", Sets: 3, Reps: 10},
+		{ExerciseId: 5, Name: "triceps pushdown", Sets: 3, Reps: 12},
+	}
+	view := ProgramView(
+		styles,
+		nil,
+		nil,
+		exercises,
+		data.Program{ProgramId: 1, ProgramName: "ppl"},
+		data.Workout{WorkoutId: 1, ProgramId: 1, Name: "push"},
+		data.Exercise{},
+		0,
+		0,
+		4,
+	)
+
+	if !strings.Contains(view, "#5") || !strings.Contains(view, "triceps pushdown") {
+		t.Fatalf("ProgramView() did not keep selected exercise visible in short viewport; view:\n%s", view)
+	}
+	if strings.Contains(view, "#1") {
+		t.Fatalf("ProgramView() rendered the top of the list instead of scrolling; view:\n%s", view)
+	}
+}
+
 func TestRenderHeaderShowsLog(t *testing.T) {
 	styles := theme.NewStyles(theme.Default(), 100, 30)
 	view := RenderHeader(styles, "program")
