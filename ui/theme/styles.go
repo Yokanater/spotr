@@ -9,6 +9,8 @@ type Styles struct {
 	Box               lipgloss.Style
 	Input             lipgloss.Style
 	Status            lipgloss.Style
+	HelperKey         lipgloss.Style
+	HelperSeparator   lipgloss.Style
 	Help              lipgloss.Style
 	Header            lipgloss.Style
 	Brand             lipgloss.Style
@@ -71,6 +73,13 @@ func NewStyles(t Theme, w int, h int) Styles {
 			Foreground(t.TextMuted).
 			Width(contentW).
 			Align(lipgloss.Left),
+
+		HelperKey: lipgloss.NewStyle().
+			Foreground(t.Accent).
+			Bold(true),
+
+		HelperSeparator: lipgloss.NewStyle().
+			Foreground(t.TextFaint),
 
 		Help: lipgloss.NewStyle().
 			Width(contentW).

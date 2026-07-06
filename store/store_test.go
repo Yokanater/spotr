@@ -100,15 +100,21 @@ func TestGymSessionLifecycle(t *testing.T) {
 		t.Fatalf("StartGymSession() duplicate error = %v; want active session error", err)
 	}
 
-	if err := st.AddGymSessionEntry(session, exercise, 3, 8, 135, "felt good"); err != nil {
+	if err := st.AddGymSessionEntry(session, exercise, 3, 8, "", 135, "felt good"); err != nil {
 		t.Fatalf("AddGymSessionEntry() error = %v", err)
+	}
+	if err := st.AddGymSessionEntry(session, exercise, 2, 4, "6/4", 135, "dropoff"); err != nil {
+		t.Fatalf("AddGymSessionEntry() per-set error = %v", err)
 	}
 	entries, err := st.ListGymSessionEntries(session)
 	if err != nil {
 		t.Fatalf("ListGymSessionEntries() error = %v", err)
 	}
-	if len(entries) != 1 || entries[0].Exercise != "bench" || entries[0].Sets != 3 || entries[0].Reps != 8 || entries[0].Weight != 135 {
+	if len(entries) != 2 || entries[0].Exercise != "bench" || entries[0].Sets != 3 || entries[0].Reps != 8 || entries[0].Weight != 135 {
 		t.Fatalf("ListGymSessionEntries() = %+v; want bench 3x8 @ 135", entries)
+	}
+	if entries[1].RepsDetail != "6/4" {
+		t.Fatalf("ListGymSessionEntries() reps detail = %q; want 6/4", entries[1].RepsDetail)
 	}
 
 	if err := st.FinishGymSession(session, "solid push day"); err != nil {
@@ -120,6 +126,39 @@ func TestGymSessionLifecycle(t *testing.T) {
 	}
 	if len(sessions) != 1 || sessions[0].EndedAt == "" || sessions[0].Notes != "solid push day" {
 		t.Fatalf("ListGymSessions() = %+v; want finished session with notes", sessions)
+	}
+
+	if err := st.CreateWorkout("upper body", program); err != nil {
+		t.Fatalf("CreateWorkout() upper body error = %v", err)
+	}
+	upperWorkout, err := st.SelectWorkout("upper body", program)
+	if err != nil {
+		t.Fatalf("SelectWorkout() upper body error = %v", err)
+	}
+	if err := st.CreateExercise("bench", 3, 8, upperWorkout); err != nil {
+		t.Fatalf("CreateExercise() upper bench error = %v", err)
+	}
+	upperBench, err := st.SelectExercise("bench", upperWorkout)
+	if err != nil {
+		t.Fatalf("SelectExercise() upper bench error = %v", err)
+	}
+	upperSession, err := st.StartGymSession(upperWorkout)
+	if err != nil {
+		t.Fatalf("StartGymSession() upper error = %v", err)
+	}
+	if err := st.AddGymSessionEntry(upperSession, upperBench, 3, 7, "", 140, "upper day"); err != nil {
+		t.Fatalf("AddGymSessionEntry() upper error = %v", err)
+	}
+
+	linkedEntries, err := st.ListExerciseLogEntries(program, "bench", 10)
+	if err != nil {
+		t.Fatalf("ListExerciseLogEntries() error = %v", err)
+	}
+	if len(linkedEntries) != 3 {
+		t.Fatalf("ListExerciseLogEntries() = %+v; want three linked bench entries", linkedEntries)
+	}
+	if linkedEntries[0].Workout != "upper body" || linkedEntries[1].Workout != "push" {
+		t.Fatalf("ListExerciseLogEntries() workouts = %+v; want upper body then push", linkedEntries)
 	}
 }
 

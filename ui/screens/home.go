@@ -37,9 +37,9 @@ func HomeView(styles theme.Styles) string {
 
 func RenderHeader(styles theme.Styles, active string) string {
 	brand := styles.Brand.Render("spotr")
-	nav := "home   program   workout   exercise   log   help"
+	nav := "home   training   logs   help"
 	if styles.Header.GetWidth() < 72 {
-		nav = "home program log help"
+		nav = "home training logs help"
 	}
 	if active != "" {
 		nav += "   / " + active

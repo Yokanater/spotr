@@ -13,8 +13,11 @@ type GymSessionEntry struct {
 	SessionId  int64
 	ExerciseId int64
 	Exercise   string
+	Workout    string
+	StartedAt  string
 	Sets       int
 	Reps       int
+	RepsDetail string
 	Weight     float64
 	Notes      string
 }

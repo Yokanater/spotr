@@ -31,6 +31,10 @@ var KeyBindings = []KeyBinding{
 		Action: "log actual sets and reps",
 	},
 	{
+		Key:    "v",
+		Action: "view workout logs",
+	},
+	{
 		Key:    "f",
 		Action: "finish workout log",
 	},

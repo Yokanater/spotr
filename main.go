@@ -57,34 +57,40 @@ const (
 	screenPrograms  screen = "programs"
 	screenWorkouts  screen = "workouts"
 	screenExercises screen = "exercises"
+	screenHistory   screen = "history"
 	screenHelp      screen = "help"
 )
 
 type model struct {
-	quitting       bool
-	maxH           int
-	maxW           int
-	appH           int
-	appW           int
-	termH          int
-	termW          int
-	theme          theme.Theme
-	screen         screen
-	mode           mode
-	inputPurpose   inputPurpose
-	styles         theme.Styles
-	input          textinput.Model
-	store          *store.Store
-	status         string
-	programCursor  int
-	workoutCursor  int
-	exerciseCursor int
-	programs       []data.Program
-	workouts       []data.Workout
-	exercises      []data.Exercise
-	activeProgram  data.Program
-	activeWorkout  data.Workout
-	activeExercise data.Exercise
+	quitting        bool
+	maxH            int
+	maxW            int
+	appH            int
+	appW            int
+	termH           int
+	termW           int
+	theme           theme.Theme
+	screen          screen
+	mode            mode
+	inputPurpose    inputPurpose
+	styles          theme.Styles
+	input           textinput.Model
+	store           *store.Store
+	status          string
+	programCursor   int
+	workoutCursor   int
+	exerciseCursor  int
+	historyCursor   int
+	programs        []data.Program
+	workouts        []data.Workout
+	exercises       []data.Exercise
+	historySessions []data.GymSession
+	historyEntries  []data.GymSessionEntry
+	activeSession   data.GymSession
+	historyTitle    string
+	activeProgram   data.Program
+	activeWorkout   data.Workout
+	activeExercise  data.Exercise
 }
 
 func initialModel(st *store.Store) model {
@@ -227,6 +233,8 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.startLogSession()
 	case "l":
 		m.startLogExerciseInput()
+	case "v":
+		m.viewRecentLogs()
 	case "f":
 		m.finishLogSession()
 	case "down":
@@ -274,6 +282,12 @@ func (m *model) requestQuit() {
 }
 
 func (m *model) moveCursor(delta int) {
+	if m.screen == screenHistory {
+		if m.activeSession.SessionId == 0 {
+			m.historyCursor = moveIndex(m.historyCursor, delta, len(m.historySessions))
+		}
+		return
+	}
 	m.screen = screenProgram
 	switch m.currentLevel() {
 	case screenPrograms:
@@ -300,6 +314,10 @@ func moveIndex(current int, delta int, length int) int {
 }
 
 func (m *model) openSelected() {
+	if m.screen == screenHistory {
+		m.openSelectedHistory()
+		return
+	}
 	m.screen = screenProgram
 	switch m.currentLevel() {
 	case screenPrograms:
@@ -356,6 +374,31 @@ func (m *model) openSelected() {
 	}
 }
 
+func (m *model) openSelectedHistory() {
+	if m.activeSession.SessionId != 0 {
+		m.status = helperMessage("b back to logs", ": command")
+		return
+	}
+	if m.historyEntries != nil {
+		m.status = helperMessage("linked by exercise name", "b back", ": command")
+		return
+	}
+	if len(m.historySessions) == 0 {
+		m.status = "no logs yet"
+		return
+	}
+	m.historyCursor = clampIndex(m.historyCursor, len(m.historySessions))
+	session := m.historySessions[m.historyCursor]
+	entries, err := m.store.ListGymSessionEntries(session)
+	if err != nil {
+		m.status = err.Error()
+		return
+	}
+	m.historyEntries = entries
+	m.activeSession = session
+	m.status = helperMessage("b back to logs", ": command")
+}
+
 func clampIndex(current int, length int) int {
 	if length == 0 || current < 0 {
 		return 0
@@ -370,6 +413,24 @@ func (m *model) goBack() {
 	if m.screen == screenHelp {
 		m.screen = screenProgram
 		m.status = "back"
+		return
+	}
+	if m.screen == screenHistory {
+		if m.activeSession.SessionId != 0 {
+			if m.historySessions == nil {
+				m.activeSession = data.GymSession{}
+				m.historyEntries = nil
+				m.screen = screenProgram
+				m.status = m.normalHelp()
+				return
+			}
+			m.activeSession = data.GymSession{}
+			m.historyEntries = nil
+			m.status = helperMessage("up/down choose log", "enter open", "b training")
+			return
+		}
+		m.screen = screenProgram
+		m.status = m.normalHelp()
 		return
 	}
 	switch {
@@ -423,12 +484,12 @@ func (m model) normalHelp() string {
 		if len(m.workouts) == 0 {
 			return helperMessage("a add your first workout", "b programs", ": command")
 		}
-		return helperMessage("up/down move", "enter open workout", "s start log", "f finish log", "b programs")
+		return helperMessage("up/down move", "enter open workout", "v workout logs", "a add workout", "b programs")
 	case screenExercises:
 		if len(m.exercises) == 0 {
 			return helperMessage("a add your first exercise", "b workouts", ": command")
 		}
-		return helperMessage("up/down move", "l log actual sets", "s start log", "f finish log", "b workouts")
+		return helperMessage("up/down move", "l log actual sets", "v exercise logs", "s start log", "b workouts")
 	default:
 		return helperMessage("up/down move", "enter open", "b back", "a add", ": command")
 	}
@@ -436,6 +497,41 @@ func (m model) normalHelp() string {
 
 func helperMessage(parts ...string) string {
 	return strings.Join(parts, " · ")
+}
+
+func renderStatus(styles theme.Styles, status string) string {
+	parts := strings.Split(status, " · ")
+	if len(parts) == 1 {
+		return styles.Status.Render(status)
+	}
+
+	rendered := make([]string, 0, len(parts)*2-1)
+	for i, part := range parts {
+		if i > 0 {
+			rendered = append(rendered, styles.HelperSeparator.Render(" · "))
+		}
+		rendered = append(rendered, renderHelperPart(styles, part))
+	}
+
+	return styles.Status.Render(lipgloss.JoinHorizontal(lipgloss.Top, rendered...))
+}
+
+func renderHelperPart(styles theme.Styles, part string) string {
+	key, rest, ok := strings.Cut(part, " ")
+	if !ok || !isHelperKey(key) {
+		return part
+	}
+
+	return lipgloss.JoinHorizontal(lipgloss.Top, styles.HelperKey.Render(key), " "+rest)
+}
+
+func isHelperKey(value string) bool {
+	switch value {
+	case ":", "?", "a", "b", "enter", "esc", "f", "l", "s", "v", "up/down":
+		return true
+	default:
+		return false
+	}
 }
 
 func (m *model) startLogSession() {
@@ -468,10 +564,10 @@ func (m *model) startLogExerciseInput() {
 	m.mode = modeInput
 	m.inputPurpose = inputLogExercise
 	m.input.SetValue(suggestion)
-	m.input.Placeholder = "sets reps [weight] [notes]"
+	m.input.Placeholder = "sets reps or reps/reps [weight] [notes]"
 	m.input.Prompt = "log " + exercise.Name + " $ "
 	if suggestion != "" {
-		m.status = helperMessage(fmt.Sprintf("suggested %dx%d", exercise.Sets, exercise.Reps), "edit if needed", "enter log", "esc cancel")
+		m.status = helperMessage(fmt.Sprintf("suggested %dx%d", exercise.Sets, exercise.Reps), "use 6/4 for mixed reps", "enter log", "esc cancel")
 		return
 	}
 	m.status = helperMessage("enter actual sets and reps for "+exercise.Name, "enter log", "esc cancel")
@@ -484,7 +580,7 @@ func (m *model) submitLoggedExercise(value string) {
 		return
 	}
 
-	sets, reps, weight, notes, err := parseLoggedExerciseValue(value)
+	sets, reps, repsDetail, weight, notes, err := parseLoggedExerciseValue(value)
 	if err != nil {
 		m.status = err.Error()
 		return
@@ -495,12 +591,12 @@ func (m *model) submitLoggedExercise(value string) {
 		m.status = err.Error()
 		return
 	}
-	if err := m.store.AddGymSessionEntry(session, exercise, sets, reps, weight, notes); err != nil {
+	if err := m.store.AddGymSessionEntry(session, exercise, sets, reps, repsDetail, weight, notes); err != nil {
 		m.status = err.Error()
 		return
 	}
 
-	entry := data.GymSessionEntry{Exercise: exercise.Name, Sets: sets, Reps: reps, Weight: weight, Notes: notes}
+	entry := data.GymSessionEntry{Exercise: exercise.Name, Sets: sets, Reps: reps, RepsDetail: repsDetail, Weight: weight, Notes: notes}
 	if started {
 		m.status = fmt.Sprintf("Started session #%d. Logged %s", session.SessionId, formatSessionEntry(entry))
 		return
@@ -529,6 +625,73 @@ func (m *model) finishLogSession() {
 		return
 	}
 	m.status = fmt.Sprintf("Finished session #%d", session.SessionId)
+}
+
+func (m *model) viewRecentLogs() {
+	if m.activeWorkout.WorkoutId == 0 {
+		workout, ok := m.workoutForHistory()
+		if !ok {
+			m.status = "select a workout first"
+			return
+		}
+		m.viewWorkoutSessions(workout)
+		return
+	}
+
+	if exercise, ok := m.exerciseForHistory(); ok {
+		entries, err := m.store.ListExerciseLogEntries(m.activeProgram, exercise.Name, 20)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.historySessions = nil
+		m.historyEntries = entries
+		m.activeSession = data.GymSession{}
+		m.historyTitle = exercise.Name + " across " + m.activeProgram.ProgramName
+		m.historyCursor = 0
+		m.screen = screenHistory
+		m.status = helperMessage("linked by exercise name", "b back", ": command")
+		return
+	}
+
+	m.viewWorkoutSessions(m.activeWorkout)
+}
+
+func (m *model) viewWorkoutSessions(workout data.Workout) {
+	sessions, err := m.store.ListGymSessions(workout, 8)
+	if err != nil {
+		m.status = err.Error()
+		return
+	}
+	m.historySessions = sessions
+	m.historyEntries = nil
+	m.activeSession = data.GymSession{}
+	m.historyTitle = workout.Name + " sessions"
+	m.historyCursor = clampIndex(m.historyCursor, len(sessions))
+	m.screen = screenHistory
+	m.status = helperMessage("up/down choose log", "enter open", "b back")
+}
+
+func (m *model) workoutForHistory() (data.Workout, bool) {
+	if m.activeWorkout.WorkoutId != 0 {
+		return m.activeWorkout, true
+	}
+	if m.activeProgram.ProgramId == 0 || len(m.workouts) == 0 {
+		return data.Workout{}, false
+	}
+	m.workoutCursor = clampIndex(m.workoutCursor, len(m.workouts))
+	return m.workouts[m.workoutCursor], true
+}
+
+func (m *model) exerciseForHistory() (data.Exercise, bool) {
+	if m.activeExercise.ExerciseId != 0 {
+		return m.activeExercise, true
+	}
+	if m.activeWorkout.WorkoutId == 0 || len(m.exercises) == 0 {
+		return data.Exercise{}, false
+	}
+	m.exerciseCursor = clampIndex(m.exerciseCursor, len(m.exercises))
+	return m.exercises[m.exerciseCursor], true
 }
 
 func (m *model) exerciseForLogging() (data.Exercise, bool) {
@@ -716,7 +879,7 @@ func (m model) View() tea.View {
 
 	rawInput := m.input.View()
 	input := m.styles.Input.Render(rawInput)
-	status := m.styles.Status.Render(m.status)
+	status := renderStatus(m.styles, m.status)
 	screen := ""
 	switch m.screen {
 	case screenHome:
@@ -727,6 +890,9 @@ func (m model) View() tea.View {
 
 	case screenProgram:
 		screen = screens.ProgramView(m.styles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout, m.activeExercise, m.programCursor, m.workoutCursor, m.exerciseCursor)
+
+	case screenHistory:
+		screen = screens.HistoryView(m.styles, m.activeWorkout, m.historyTitle, m.historySessions, m.historyCursor, m.activeSession, m.historyEntries)
 
 	}
 	screenHeight := max(1, m.appH-lipgloss.Height(input)-lipgloss.Height(status)-2)
@@ -973,7 +1139,7 @@ func (m *model) handleLog(args []string) {
 		return
 	}
 	if len(args) == 0 {
-		m.status = "usage: log start | log add [exercise] <sets> <reps> [weight] [notes] | log finish [notes] | log current"
+		m.status = "usage: log start | log add [exercise] <sets> <reps> | log add [exercise] <reps/reps> | log finish [notes] | log current"
 		return
 	}
 
@@ -988,7 +1154,7 @@ func (m *model) handleLog(args []string) {
 		m.status = fmt.Sprintf("Started session #%d for %s", session.SessionId, m.activeWorkout.Name)
 
 	case "add":
-		exercise, sets, reps, weight, notes, err := m.parseLogAddArgs(args[1:])
+		exercise, sets, reps, repsDetail, weight, notes, err := m.parseLogAddArgs(args[1:])
 		if err != nil {
 			m.status = err.Error()
 			return
@@ -1002,11 +1168,11 @@ func (m *model) handleLog(args []string) {
 			m.status = err.Error()
 			return
 		}
-		if err := m.store.AddGymSessionEntry(session, exercise, sets, reps, weight, notes); err != nil {
+		if err := m.store.AddGymSessionEntry(session, exercise, sets, reps, repsDetail, weight, notes); err != nil {
 			m.status = err.Error()
 			return
 		}
-		m.status = "Logged " + formatSessionEntry(data.GymSessionEntry{Exercise: exercise.Name, Sets: sets, Reps: reps, Weight: weight, Notes: notes})
+		m.status = "Logged " + formatSessionEntry(data.GymSessionEntry{Exercise: exercise.Name, Sets: sets, Reps: reps, RepsDetail: repsDetail, Weight: weight, Notes: notes})
 
 	case "current":
 		session, err := m.store.ActiveGymSession(m.activeWorkout)
@@ -1057,7 +1223,6 @@ func (m *model) handleHistory(args []string) {
 		return
 	}
 
-	m.screen = screenProgram
 	switch args[0] {
 	case "list":
 		limit := 5
@@ -1074,7 +1239,13 @@ func (m *model) handleHistory(args []string) {
 			m.status = err.Error()
 			return
 		}
-		m.status = formatSessionList(sessions)
+		m.historySessions = sessions
+		m.historyEntries = nil
+		m.activeSession = data.GymSession{}
+		m.historyTitle = m.activeWorkout.Name + " sessions"
+		m.historyCursor = clampIndex(m.historyCursor, len(sessions))
+		m.screen = screenHistory
+		m.status = helperMessage("up/down choose log", "enter open", "b back")
 
 	case "show":
 		if len(args) < 2 {
@@ -1091,67 +1262,67 @@ func (m *model) handleHistory(args []string) {
 			m.status = err.Error()
 			return
 		}
-		m.status = formatSessionDetail(session, entries)
+		m.historySessions = nil
+		m.historyEntries = entries
+		m.activeSession = session
+		m.historyTitle = m.activeWorkout.Name + " sessions"
+		m.screen = screenHistory
+		m.status = helperMessage("history list back to recent", "b back", ": command")
 
 	default:
 		m.status = fmt.Sprintf("unknown history command: %s", args[0])
 	}
 }
 
-func (m *model) parseLogAddArgs(args []string) (data.Exercise, int, int, float64, string, error) {
-	if len(args) < 2 {
-		return data.Exercise{}, 0, 0, 0, "", fmt.Errorf("usage: log add [exercise] <sets> <reps> [weight] [notes]")
+func (m *model) parseLogAddArgs(args []string) (data.Exercise, int, int, string, float64, string, error) {
+	if len(args) < 1 {
+		return data.Exercise{}, 0, 0, "", 0, "", fmt.Errorf("usage: log add [exercise] <sets> <reps> or <reps/reps> [weight] [notes]")
 	}
 
 	exercise := m.activeExercise
 	valueStart := 0
-	if exercise.ExerciseId == 0 || !isInt(args[0]) {
-		if len(args) < 3 {
-			return data.Exercise{}, 0, 0, 0, "", fmt.Errorf("usage: log add [exercise] <sets> <reps> [weight] [notes]")
+	if exercise.ExerciseId == 0 || !isLogValueStart(args, 0) {
+		if len(args) < 2 {
+			return data.Exercise{}, 0, 0, "", 0, "", fmt.Errorf("usage: log add [exercise] <sets> <reps> or <reps/reps> [weight] [notes]")
 		}
-		valueStart = findFirstNumberPair(args)
+		valueStart = findFirstLogValue(args)
 		if valueStart <= 0 {
-			return data.Exercise{}, 0, 0, 0, "", fmt.Errorf("sets and reps must be numbers")
+			return data.Exercise{}, 0, 0, "", 0, "", fmt.Errorf("sets and reps must be numbers")
 		}
 		selected, err := m.store.SelectExercise(strings.Join(args[:valueStart], " "), m.activeWorkout)
 		if err != nil {
-			return data.Exercise{}, 0, 0, 0, "", err
+			return data.Exercise{}, 0, 0, "", 0, "", err
 		}
 		exercise = selected
 	}
 	if exercise.ExerciseId == 0 {
-		return data.Exercise{}, 0, 0, 0, "", fmt.Errorf("select an exercise first or pass one to log add")
+		return data.Exercise{}, 0, 0, "", 0, "", fmt.Errorf("select an exercise first or pass one to log add")
 	}
 
-	sets, reps, err := parseSetReps(args[valueStart], args[valueStart+1])
+	sets, reps, repsDetail, weight, notes, err := parseLoggedExerciseValue(strings.Join(args[valueStart:], " "))
 	if err != nil {
-		return data.Exercise{}, 0, 0, 0, "", err
+		return data.Exercise{}, 0, 0, "", 0, "", err
 	}
-
-	weight := 0.0
-	notesStart := valueStart + 2
-	if len(args) > notesStart {
-		parsedWeight, err := strconv.ParseFloat(args[notesStart], 64)
-		if err == nil {
-			weight = parsedWeight
-			notesStart++
-		}
-	}
-
-	notes := ""
-	if len(args) > notesStart {
-		notes = strings.Join(args[notesStart:], " ")
-	}
-	return exercise, sets, reps, weight, notes, nil
+	return exercise, sets, reps, repsDetail, weight, notes, nil
 }
 
-func findFirstNumberPair(args []string) int {
-	for i := 0; i < len(args)-1; i++ {
-		if isInt(args[i]) && isInt(args[i+1]) {
+func findFirstLogValue(args []string) int {
+	for i := range args {
+		if isLogValueStart(args, i) {
 			return i
 		}
 	}
 	return -1
+}
+
+func isLogValueStart(args []string, index int) bool {
+	if index >= len(args) {
+		return false
+	}
+	if isValidRepsDetailToken(args[index]) {
+		return true
+	}
+	return index+1 < len(args) && isInt(args[index]) && isInt(args[index+1])
 }
 
 func isInt(value string) bool {
@@ -1159,25 +1330,45 @@ func isInt(value string) bool {
 	return err == nil
 }
 
-func parseLoggedExerciseValue(value string) (int, int, float64, string, error) {
+func parseLoggedExerciseValue(value string) (int, int, string, float64, string, error) {
 	args := strings.Fields(value)
-	if len(args) < 2 {
-		return 0, 0, 0, "", fmt.Errorf("usage: sets reps [weight] [notes]")
+	if len(args) < 1 {
+		return 0, 0, "", 0, "", fmt.Errorf("usage: sets reps [weight] [notes] or reps/reps [weight] [notes]")
 	}
 
-	sets, reps, err := parseSetReps(args[0], args[1])
-	if err != nil {
-		return 0, 0, 0, "", err
+	sets := 0
+	reps := 0
+	repsDetail := ""
+	notesStart := 0
+	if isRepsDetailToken(args[0]) {
+		parsedReps, err := parseRepsDetail(args[0])
+		if err != nil {
+			return 0, 0, "", 0, "", err
+		}
+		sets = len(parsedReps)
+		reps = parsedReps[len(parsedReps)-1]
+		repsDetail = strings.Join(intStrings(parsedReps), "/")
+		notesStart = 1
+	} else {
+		if len(args) < 2 {
+			return 0, 0, "", 0, "", fmt.Errorf("usage: sets reps [weight] [notes] or reps/reps [weight] [notes]")
+		}
+		var err error
+		sets, reps, err = parseSetReps(args[0], args[1])
+		if err != nil {
+			return 0, 0, "", 0, "", err
+		}
+		notesStart = 2
 	}
+
 	if sets <= 0 {
-		return 0, 0, 0, "", fmt.Errorf("sets must be greater than zero")
+		return 0, 0, "", 0, "", fmt.Errorf("sets must be greater than zero")
 	}
 	if reps <= 0 {
-		return 0, 0, 0, "", fmt.Errorf("reps must be greater than zero")
+		return 0, 0, "", 0, "", fmt.Errorf("reps must be greater than zero")
 	}
 
 	weight := 0.0
-	notesStart := 2
 	if len(args) > notesStart {
 		parsedWeight, err := strconv.ParseFloat(args[notesStart], 64)
 		if err == nil {
@@ -1190,7 +1381,43 @@ func parseLoggedExerciseValue(value string) (int, int, float64, string, error) {
 	if len(args) > notesStart {
 		notes = strings.Join(args[notesStart:], " ")
 	}
-	return sets, reps, weight, notes, nil
+	return sets, reps, repsDetail, weight, notes, nil
+}
+
+func isRepsDetailToken(value string) bool {
+	return strings.Contains(value, "/")
+}
+
+func isValidRepsDetailToken(value string) bool {
+	_, err := parseRepsDetail(value)
+	return err == nil
+}
+
+func parseRepsDetail(value string) ([]int, error) {
+	parts := strings.Split(value, "/")
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("use reps/reps for per-set reps")
+	}
+	reps := make([]int, 0, len(parts))
+	for _, part := range parts {
+		parsed, err := strconv.Atoi(part)
+		if err != nil {
+			return nil, fmt.Errorf("per-set reps must be numbers")
+		}
+		if parsed <= 0 {
+			return nil, fmt.Errorf("per-set reps must be greater than zero")
+		}
+		reps = append(reps, parsed)
+	}
+	return reps, nil
+}
+
+func intStrings(values []int) []string {
+	parts := make([]string, 0, len(values))
+	for _, value := range values {
+		parts = append(parts, strconv.Itoa(value))
+	}
+	return parts
 }
 
 func formatSessionList(sessions []data.GymSession) string {
@@ -1220,7 +1447,7 @@ func formatSessionDetail(session data.GymSession, entries []data.GymSessionEntry
 }
 
 func formatSessionEntry(entry data.GymSessionEntry) string {
-	value := fmt.Sprintf("%s %dx%d", entry.Exercise, entry.Sets, entry.Reps)
+	value := fmt.Sprintf("%s %s", entry.Exercise, setRepLabel(entry))
 	if entry.Weight > 0 {
 		value += fmt.Sprintf(" @ %.1f", entry.Weight)
 	}
@@ -1228,6 +1455,13 @@ func formatSessionEntry(entry data.GymSessionEntry) string {
 		value += " (" + entry.Notes + ")"
 	}
 	return value
+}
+
+func setRepLabel(entry data.GymSessionEntry) string {
+	if entry.RepsDetail != "" {
+		return fmt.Sprintf("%dx%s", entry.Sets, entry.RepsDetail)
+	}
+	return fmt.Sprintf("%dx%d", entry.Sets, entry.Reps)
 }
 
 func parseSetReps(setsArg string, repsArg string) (int, int, error) {

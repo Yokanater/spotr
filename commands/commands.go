@@ -56,7 +56,7 @@ var Registry = map[string]Spec{
 	"log": {
 		Name:    "log",
 		Aliases: []string{"l"},
-		Usage:   "log start | log add [exercise] <sets> <reps> [weight] [notes] | log finish [notes] | log current",
+		Usage:   "log start | log add [exercise] <sets> <reps> | log add [exercise] <reps/reps> | log finish [notes] | log current",
 		Summary: "record the active workout session",
 	},
 	"history": {

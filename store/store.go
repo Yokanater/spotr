@@ -109,6 +109,7 @@ func (s *Store) init() error {
 			exercise_id INTEGER NOT NULL REFERENCES exercises(id),
 			sets INTEGER NOT NULL,
 			reps INTEGER NOT NULL,
+			reps_detail TEXT NOT NULL DEFAULT '',
 			weight REAL NOT NULL DEFAULT 0,
 			notes TEXT NOT NULL DEFAULT '',
 			created_at TEXT NOT NULL
@@ -128,6 +129,9 @@ func (s *Store) migrate() error {
 		return err
 	}
 	if err := s.migrateWorkoutsUniqueConstraint(); err != nil {
+		return err
+	}
+	if err := s.addGymSessionEntryRepsDetailColumn(); err != nil {
 		return err
 	}
 	return nil
@@ -155,6 +159,18 @@ func (s *Store) addExerciseDefaultsColumns() error {
 	}
 
 	return nil
+}
+
+func (s *Store) addGymSessionEntryRepsDetailColumn() error {
+	hasRepsDetail, err := s.columnExists("gym_session_entries", "reps_detail")
+	if err != nil {
+		return err
+	}
+	if hasRepsDetail {
+		return nil
+	}
+	_, err = s.db.Exec(`ALTER TABLE gym_session_entries ADD COLUMN reps_detail TEXT NOT NULL DEFAULT ''`)
+	return err
 }
 
 func (s *Store) columnExists(table string, column string) (bool, error) {
@@ -513,15 +529,16 @@ func (s *Store) FinishGymSession(session data.GymSession, notes string) error {
 	return err
 }
 
-func (s *Store) AddGymSessionEntry(session data.GymSession, exercise data.Exercise, sets int, reps int, weight float64, notes string) error {
+func (s *Store) AddGymSessionEntry(session data.GymSession, exercise data.Exercise, sets int, reps int, repsDetail string, weight float64, notes string) error {
 	createdAt := time.Now().UTC().Format(time.RFC3339)
 	_, err := s.db.Exec(
-		`INSERT INTO gym_session_entries (session_id, exercise_id, sets, reps, weight, notes, created_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		`INSERT INTO gym_session_entries (session_id, exercise_id, sets, reps, reps_detail, weight, notes, created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
 		session.SessionId,
 		exercise.ExerciseId,
 		sets,
 		reps,
+		repsDetail,
 		weight,
 		notes,
 		createdAt,
@@ -587,7 +604,7 @@ func (s *Store) SelectGymSession(id string, workout data.Workout) (data.GymSessi
 func (s *Store) ListGymSessionEntries(session data.GymSession) ([]data.GymSessionEntry, error) {
 	entries := []data.GymSessionEntry{}
 	rows, err := s.db.Query(
-		`SELECT se.id, se.session_id, se.exercise_id, e.name, se.sets, se.reps, se.weight, se.notes
+		`SELECT se.id, se.session_id, se.exercise_id, e.name, se.sets, se.reps, se.reps_detail, se.weight, se.notes
 		FROM gym_session_entries se
 		JOIN exercises e ON e.id = se.exercise_id
 		WHERE se.session_id = ?
@@ -601,7 +618,43 @@ func (s *Store) ListGymSessionEntries(session data.GymSession) ([]data.GymSessio
 
 	for rows.Next() {
 		var entry data.GymSessionEntry
-		if err := rows.Scan(&entry.EntryId, &entry.SessionId, &entry.ExerciseId, &entry.Exercise, &entry.Sets, &entry.Reps, &entry.Weight, &entry.Notes); err != nil {
+		if err := rows.Scan(&entry.EntryId, &entry.SessionId, &entry.ExerciseId, &entry.Exercise, &entry.Sets, &entry.Reps, &entry.RepsDetail, &entry.Weight, &entry.Notes); err != nil {
+			return entries, err
+		}
+		entries = append(entries, entry)
+	}
+	if err := rows.Err(); err != nil {
+		return entries, err
+	}
+	return entries, nil
+}
+
+func (s *Store) ListExerciseLogEntries(program data.Program, exerciseName string, limit int) ([]data.GymSessionEntry, error) {
+	if limit <= 0 {
+		limit = 20
+	}
+	entries := []data.GymSessionEntry{}
+	rows, err := s.db.Query(
+		`SELECT se.id, se.session_id, se.exercise_id, e.name, w.name, gs.started_at, se.sets, se.reps, se.reps_detail, se.weight, se.notes
+		FROM gym_session_entries se
+		JOIN gym_sessions gs ON gs.id = se.session_id
+		JOIN exercises e ON e.id = se.exercise_id
+		JOIN workouts w ON w.id = gs.workout_id
+		WHERE w.program_id = ? AND lower(e.name) = lower(?)
+		ORDER BY gs.started_at DESC, se.id DESC
+		LIMIT ?`,
+		program.ProgramId,
+		exerciseName,
+		limit,
+	)
+	if err != nil {
+		return entries, err
+	}
+	defer rows.Close()
+
+	for rows.Next() {
+		var entry data.GymSessionEntry
+		if err := rows.Scan(&entry.EntryId, &entry.SessionId, &entry.ExerciseId, &entry.Exercise, &entry.Workout, &entry.StartedAt, &entry.Sets, &entry.Reps, &entry.RepsDetail, &entry.Weight, &entry.Notes); err != nil {
 			return entries, err
 		}
 		entries = append(entries, entry)

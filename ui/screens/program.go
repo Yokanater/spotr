@@ -39,7 +39,7 @@ func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.W
 	if styles.ProgramTitle.GetWidth() < 82 {
 		panelBlock = lipgloss.JoinVertical(lipgloss.Left, panels...)
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "program"), "", title, subtitle, "", panelBlock)
+	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "training"), "", title, subtitle, "", panelBlock)
 }
 
 func visiblePanels(styles theme.Styles, activeProgram data.Program, activeWorkout data.Workout, programPanel string, workoutPanel string, exercisePanel string) []string {
@@ -91,7 +91,7 @@ func renderExerciseSection(styles theme.Styles, title string, exercises []data.E
 		name := lipgloss.NewStyle().
 			Width(nameW).
 			MaxWidth(nameW).
-			Render(rowStyle.Render(marker+" ") + exercise.Name)
+			Render(rowStyle.Render(marker+" ") + fmt.Sprintf("#%d  %s", exercise.ExerciseId, exercise.Name))
 		target := lipgloss.NewStyle().
 			Width(targetW).
 			Align(lipgloss.Right).
@@ -158,7 +158,7 @@ func visibleRange(length int, cursor int, rows int) (int, int) {
 func programNames(programs []data.Program) []string {
 	names := make([]string, 0, len(programs))
 	for _, program := range programs {
-		names = append(names, program.ProgramName)
+		names = append(names, fmt.Sprintf("#%d  %s", program.ProgramId, program.ProgramName))
 	}
 	return names
 }
@@ -166,16 +166,16 @@ func programNames(programs []data.Program) []string {
 func workoutNames(workouts []data.Workout) []string {
 	names := make([]string, 0, len(workouts))
 	for _, workout := range workouts {
-		names = append(names, workout.Name)
+		names = append(names, fmt.Sprintf("#%d  %s", workout.WorkoutId, workout.Name))
 	}
 	return names
 }
 
 func exerciseLabel(exercise data.Exercise) string {
 	if exercise.Sets > 0 || exercise.Reps > 0 {
-		return fmt.Sprintf("%s  %dx%d", exercise.Name, exercise.Sets, exercise.Reps)
+		return fmt.Sprintf("#%d  %s  %dx%d", exercise.ExerciseId, exercise.Name, exercise.Sets, exercise.Reps)
 	}
-	return exercise.Name
+	return fmt.Sprintf("#%d  %s", exercise.ExerciseId, exercise.Name)
 }
 
 func exerciseTarget(exercise data.Exercise) string {
