@@ -76,6 +76,26 @@ func TestProgramViewShowsProgressivePanels(t *testing.T) {
 	}
 }
 
+func TestProgramViewDoesNotRenderActionFooter(t *testing.T) {
+	styles := theme.NewStyles(theme.Default(), 100, 30)
+	view := ProgramView(
+		styles,
+		[]data.Program{{ProgramId: 1, ProgramName: "ppl"}},
+		[]data.Workout{{WorkoutId: 1, ProgramId: 1, Name: "push"}},
+		nil,
+		data.Program{ProgramId: 1, ProgramName: "ppl"},
+		data.Workout{},
+		data.Exercise{},
+		0,
+		0,
+		0,
+	)
+
+	if strings.Contains(view, "enter open workout") {
+		t.Fatalf("ProgramView() rendered duplicate action footer; view:\n%s", view)
+	}
+}
+
 func TestRenderHeaderShowsLog(t *testing.T) {
 	styles := theme.NewStyles(theme.Default(), 100, 30)
 	view := RenderHeader(styles, "program")

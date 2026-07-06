@@ -39,18 +39,7 @@ func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.W
 	if styles.ProgramTitle.GetWidth() < 82 {
 		panelBlock = lipgloss.JoinVertical(lipgloss.Left, panels...)
 	}
-	footer := styles.ProgramSubtitle.Render(actionHint(activeProgram, activeWorkout))
-	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "program"), "", title, subtitle, "", panelBlock, "", footer)
-}
-
-func actionHint(activeProgram data.Program, activeWorkout data.Workout) string {
-	if activeWorkout.WorkoutId != 0 {
-		return "a add exercise   enter select exercise   b back to workouts   : command"
-	}
-	if activeProgram.ProgramId != 0 {
-		return "a add workout   enter open workout   b back to programs   : command"
-	}
-	return "a add program   enter open program   : command"
+	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "program"), "", title, subtitle, "", panelBlock)
 }
 
 func visiblePanels(styles theme.Styles, activeProgram data.Program, activeWorkout data.Workout, programPanel string, workoutPanel string, exercisePanel string) []string {

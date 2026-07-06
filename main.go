@@ -90,7 +90,7 @@ type model struct {
 func initialModel(st *store.Store) model {
 	ti := textinput.New()
 	t := theme.Default()
-	ti.Placeholder = "press : to type a command"
+	ti.Placeholder = ""
 	ti.Prompt = ""
 	ti.SetWidth(t.InputMax)
 	ti.CharLimit = 128
@@ -106,10 +106,12 @@ func initialModel(st *store.Store) model {
 		store:  st,
 		mode:   modeNormal,
 		screen: screenHome,
-		status: "press : for commands, a to add, ? for help",
+		status: "",
 	}
 	if err := m.loadPrograms(); err != nil {
 		m.status = err.Error()
+	} else {
+		m.status = m.normalHelp()
 	}
 	return m
 }
@@ -218,7 +220,7 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.input.SetValue("")
 		m.input.Placeholder = "program list"
 		m.input.Prompt = "spotr $ "
-		m.status = "command mode"
+		m.status = helperMessage("type a command", "enter run", "esc cancel")
 	case "a":
 		m.startAdd()
 	case "s":
@@ -235,7 +237,7 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.openSelected()
 	case "?":
 		m.screen = screenHelp
-		m.status = "help"
+		m.status = helperMessage("b back", ": command")
 	case "home":
 		m.goHome()
 	case "b", "esc":
@@ -413,14 +415,27 @@ func (m model) currentLevel() screen {
 func (m model) normalHelp() string {
 	switch m.currentLevel() {
 	case screenPrograms:
-		return "up/down move, enter open, a add program, : command"
+		if len(m.programs) == 0 {
+			return helperMessage("a add your first program", ": command", "? help")
+		}
+		return helperMessage("up/down move", "enter open program", "a add program", ": command")
 	case screenWorkouts:
-		return "up/down move, enter open, s start log, f finish log, : command"
+		if len(m.workouts) == 0 {
+			return helperMessage("a add your first workout", "b programs", ": command")
+		}
+		return helperMessage("up/down move", "enter open workout", "s start log", "f finish log", "b programs")
 	case screenExercises:
-		return "up/down move, l log actual sets, s start log, f finish log, : command"
+		if len(m.exercises) == 0 {
+			return helperMessage("a add your first exercise", "b workouts", ": command")
+		}
+		return helperMessage("up/down move", "l log actual sets", "s start log", "f finish log", "b workouts")
 	default:
-		return "up/down move, enter open, b back, a add, : command"
+		return helperMessage("up/down move", "enter open", "b back", "a add", ": command")
 	}
+}
+
+func helperMessage(parts ...string) string {
+	return strings.Join(parts, " · ")
 }
 
 func (m *model) startLogSession() {
@@ -456,10 +471,10 @@ func (m *model) startLogExerciseInput() {
 	m.input.Placeholder = "sets reps [weight] [notes]"
 	m.input.Prompt = "log " + exercise.Name + " $ "
 	if suggestion != "" {
-		m.status = fmt.Sprintf("suggested %dx%d. edit with what you actually did", exercise.Sets, exercise.Reps)
+		m.status = helperMessage(fmt.Sprintf("suggested %dx%d", exercise.Sets, exercise.Reps), "edit if needed", "enter log", "esc cancel")
 		return
 	}
-	m.status = "enter actual sets and reps for " + exercise.Name
+	m.status = helperMessage("enter actual sets and reps for "+exercise.Name, "enter log", "esc cancel")
 }
 
 func (m *model) submitLoggedExercise(value string) {
@@ -600,7 +615,7 @@ func (m *model) startAddProgram() {
 	m.inputPurpose = inputAddProgram
 	m.input.Placeholder = "program name"
 	m.input.Prompt = "add program $ "
-	m.status = "adding program"
+	m.status = helperMessage("type a program name", "enter create", "esc cancel")
 }
 
 func (m *model) startAddWorkout() {
@@ -610,7 +625,7 @@ func (m *model) startAddWorkout() {
 	m.inputPurpose = inputAddWorkout
 	m.input.Placeholder = "workout name"
 	m.input.Prompt = "add workout $ "
-	m.status = "adding workout"
+	m.status = helperMessage("type a workout name", "enter create", "esc cancel")
 }
 
 func (m *model) startAddExercise() {
@@ -620,7 +635,7 @@ func (m *model) startAddExercise() {
 	m.inputPurpose = inputAddExercise
 	m.input.Placeholder = "exercise name [sets] [reps]"
 	m.input.Prompt = "add exercise $ "
-	m.status = "adding exercise"
+	m.status = helperMessage("type exercise name plus optional sets and reps", "enter create", "esc cancel")
 }
 
 func (m *model) submitInput(purpose inputPurpose, value string) {
@@ -647,7 +662,7 @@ func inputCancelledStatus(purpose inputPurpose) string {
 }
 
 func (m *model) resetInputPrompt() {
-	m.input.Placeholder = "press : to type a command"
+	m.input.Placeholder = ""
 	m.input.Prompt = ""
 }
 
