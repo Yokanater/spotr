@@ -36,13 +36,28 @@ func TestHistoryViewShowsExerciseHistory(t *testing.T) {
 		nil,
 		0,
 		data.GymSession{},
-		[]data.GymSessionEntry{{SessionId: 7, Exercise: "bench", Workout: "upper body", StartedAt: "2026-07-06T10:00:00Z", Sets: 2, Reps: 4, RepsDetail: "6/4"}},
+		[]data.GymSessionEntry{{SessionId: 7, Exercise: "bench", Workout: "upper body", StartedAt: "2026-07-06T10:00:00Z", Sets: 2, Reps: 4, RepsDetail: "6/4", Weight: 135}},
 	)
 
-	for _, want := range []string{"movement history", "ID #7", "upper body", "2x6/4"} {
+	for _, want := range []string{"movement history", "weight progression", "dates", "reps", "ID #7", "upper body", "2x6/4"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("HistoryView() missing %q; view:\n%s", want, view)
 		}
+	}
+}
+
+func TestWeightProgressionSortsByDate(t *testing.T) {
+	entries := []data.GymSessionEntry{
+		{EntryId: 2, StartedAt: "2026-07-07T10:00:00Z", Weight: 145, Sets: 3, Reps: 8},
+		{EntryId: 1, StartedAt: "2026-07-01T10:00:00Z", Weight: 135, Sets: 3, Reps: 10},
+	}
+	points := weightedChartEntries(entries)
+
+	if len(points) != 2 {
+		t.Fatalf("weightedChartEntries() len = %d; want 2", len(points))
+	}
+	if points[0].Weight != 135 || points[1].Weight != 145 {
+		t.Fatalf("weightedChartEntries() = %+v; want chronological weights", points)
 	}
 }
 
