@@ -62,35 +62,37 @@ const (
 )
 
 type model struct {
-	quitting        bool
-	maxH            int
-	maxW            int
-	appH            int
-	appW            int
-	termH           int
-	termW           int
-	theme           theme.Theme
-	screen          screen
-	mode            mode
-	inputPurpose    inputPurpose
-	styles          theme.Styles
-	input           textinput.Model
-	store           *store.Store
-	status          string
-	programCursor   int
-	workoutCursor   int
-	exerciseCursor  int
-	historyCursor   int
-	programs        []data.Program
-	workouts        []data.Workout
-	exercises       []data.Exercise
-	historySessions []data.GymSession
-	historyEntries  []data.GymSessionEntry
-	activeSession   data.GymSession
-	historyTitle    string
-	activeProgram   data.Program
-	activeWorkout   data.Workout
-	activeExercise  data.Exercise
+	quitting           bool
+	maxH               int
+	maxW               int
+	appH               int
+	appW               int
+	termH              int
+	termW              int
+	theme              theme.Theme
+	screen             screen
+	mode               mode
+	inputPurpose       inputPurpose
+	styles             theme.Styles
+	input              textinput.Model
+	store              *store.Store
+	status             string
+	programCursor      int
+	workoutCursor      int
+	exerciseCursor     int
+	historyCursor      int
+	programs           []data.Program
+	workouts           []data.Workout
+	exercises          []data.Exercise
+	historySessions    []data.GymSession
+	historyEntries     []data.GymSessionEntry
+	historyBackEntries []data.GymSessionEntry
+	historyBackCursor  int
+	activeSession      data.GymSession
+	historyTitle       string
+	activeProgram      data.Program
+	activeWorkout      data.Workout
+	activeExercise     data.Exercise
 }
 
 func initialModel(st *store.Store) model {
@@ -283,7 +285,12 @@ func (m *model) requestQuit() {
 
 func (m *model) moveCursor(delta int) {
 	if m.screen == screenHistory {
-		if m.activeSession.SessionId == 0 {
+		switch {
+		case m.activeSession.SessionId != 0:
+			m.historyCursor = moveIndex(m.historyCursor, delta, len(m.historyEntries))
+		case m.historyEntries != nil:
+			m.historyCursor = moveIndex(m.historyCursor, delta, len(m.historyEntries))
+		default:
 			m.historyCursor = moveIndex(m.historyCursor, delta, len(m.historySessions))
 		}
 		return
@@ -380,7 +387,28 @@ func (m *model) openSelectedHistory() {
 		return
 	}
 	if m.historyEntries != nil {
-		m.status = helperMessage("linked by exercise name", "b back", ": command")
+		if len(m.historyEntries) == 0 {
+			m.status = "no linked logs yet"
+			return
+		}
+		m.historyCursor = clampIndex(m.historyCursor, len(m.historyEntries))
+		entry := m.historyEntries[m.historyCursor]
+		session, err := m.store.SelectGymSessionByID(entry.SessionId)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		entries, err := m.store.ListGymSessionEntries(session)
+		if err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.activeSession = session
+		m.historyBackEntries = m.historyEntries
+		m.historyBackCursor = m.historyCursor
+		m.historyEntries = entries
+		m.historyCursor = 0
+		m.status = helperMessage("up/down scroll entries", "b back to logs")
 		return
 	}
 	if len(m.historySessions) == 0 {
@@ -395,8 +423,10 @@ func (m *model) openSelectedHistory() {
 		return
 	}
 	m.historyEntries = entries
+	m.historyBackEntries = nil
 	m.activeSession = session
-	m.status = helperMessage("b back to logs", ": command")
+	m.historyCursor = 0
+	m.status = helperMessage("up/down scroll entries", "b back to logs")
 }
 
 func clampIndex(current int, length int) int {
@@ -417,6 +447,14 @@ func (m *model) goBack() {
 	}
 	if m.screen == screenHistory {
 		if m.activeSession.SessionId != 0 {
+			if m.historyBackEntries != nil {
+				m.activeSession = data.GymSession{}
+				m.historyEntries = m.historyBackEntries
+				m.historyBackEntries = nil
+				m.historyCursor = clampIndex(m.historyBackCursor, len(m.historyEntries))
+				m.status = helperMessage("up/down choose log", "enter open", "b training")
+				return
+			}
 			if m.historySessions == nil {
 				m.activeSession = data.GymSession{}
 				m.historyEntries = nil
@@ -426,6 +464,7 @@ func (m *model) goBack() {
 			}
 			m.activeSession = data.GymSession{}
 			m.historyEntries = nil
+			m.historyCursor = clampIndex(m.historyCursor, len(m.historySessions))
 			m.status = helperMessage("up/down choose log", "enter open", "b training")
 			return
 		}
@@ -646,6 +685,7 @@ func (m *model) viewRecentLogs() {
 		}
 		m.historySessions = nil
 		m.historyEntries = entries
+		m.historyBackEntries = nil
 		m.activeSession = data.GymSession{}
 		m.historyTitle = exercise.Name + " across " + m.activeProgram.ProgramName
 		m.historyCursor = 0
@@ -665,6 +705,7 @@ func (m *model) viewWorkoutSessions(workout data.Workout) {
 	}
 	m.historySessions = sessions
 	m.historyEntries = nil
+	m.historyBackEntries = nil
 	m.activeSession = data.GymSession{}
 	m.historyTitle = workout.Name + " sessions"
 	m.historyCursor = clampIndex(m.historyCursor, len(sessions))

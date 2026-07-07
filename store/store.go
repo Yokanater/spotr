@@ -601,6 +601,24 @@ func (s *Store) SelectGymSession(id string, workout data.Workout) (data.GymSessi
 	return session, nil
 }
 
+func (s *Store) SelectGymSessionByID(id int64) (data.GymSession, error) {
+	var session data.GymSession
+	var endedAt sql.NullString
+	err := s.db.QueryRow(
+		`SELECT id, workout_id, started_at, ended_at, notes
+		FROM gym_sessions
+		WHERE id = ?`,
+		id,
+	).Scan(&session.SessionId, &session.WorkoutId, &session.StartedAt, &endedAt, &session.Notes)
+	if err != nil {
+		return data.GymSession{}, err
+	}
+	if endedAt.Valid {
+		session.EndedAt = endedAt.String
+	}
+	return session, nil
+}
+
 func (s *Store) ListGymSessionEntries(session data.GymSession) ([]data.GymSessionEntry, error) {
 	entries := []data.GymSessionEntry{}
 	rows, err := s.db.Query(
