@@ -39,7 +39,7 @@ func TestHistoryViewShowsExerciseHistory(t *testing.T) {
 		[]data.GymSessionEntry{{SessionId: 7, Exercise: "bench", Workout: "upper body", StartedAt: "2026-07-06T10:00:00Z", Sets: 2, Reps: 4, RepsDetail: "6/4", Weight: 135}},
 	)
 
-	for _, want := range []string{"movement history", "weight progression", "dates", "reps", "ID #7", "upper body", "2x6/4"} {
+	for _, want := range []string{"movement history", "progress", "best 135.0", "07-06 135.0 2x6/4", "#7", "upper body", "2x6/4"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("HistoryView() missing %q; view:\n%s", want, view)
 		}

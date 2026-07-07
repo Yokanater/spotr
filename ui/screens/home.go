@@ -36,13 +36,11 @@ func HomeView(styles theme.Styles) string {
 }
 
 func RenderHeader(styles theme.Styles, active string) string {
+	_ = active
 	brand := styles.Brand.Render("spotr")
 	nav := "home   training   logs   help"
 	if styles.Header.GetWidth() < 72 {
 		nav = "home training logs help"
-	}
-	if active != "" {
-		nav += "   / " + active
 	}
 
 	return styles.Header.Align(lipgloss.Center).Render(lipgloss.JoinHorizontal(lipgloss.Top, brand, "    ", styles.Nav.Render(nav)))

@@ -122,7 +122,7 @@ func renderExerciseHistory(styles theme.Styles, entries []data.GymSessionEntry, 
 		return styles.ProgramPanel.Width(styles.Box.GetWidth()).Render(strings.Join(lines, "\n"))
 	}
 
-	lines = append(lines, renderWeightProgression(styles, entries)...)
+	lines = append(lines, renderProgressSummary(styles, entries)...)
 	lines = append(lines, "")
 
 	start, end := visibleRange(len(entries), cursor, styles.ProgramListRows)
@@ -140,13 +140,10 @@ func renderExerciseHistory(styles theme.Styles, entries []data.GymSessionEntry, 
 			rowStyle = styles.ProgramSelected
 			marker = ">"
 		}
-		id := styles.HelperKey.Render(fmt.Sprintf("ID #%d", entry.SessionId))
-		lines = append(lines, rowStyle.Render(fmt.Sprintf("%s %s  %s  %s", marker, id, entry.StartedAt, historyEntryLine(entry))))
-		if entry.Workout != "" {
-			lines = append(lines, styles.ProgramEmpty.Render("  "+entry.Workout))
-		}
-		if entry.Notes != "" {
-			lines = append(lines, styles.ProgramEmpty.Render("  "+entry.Notes))
+		lines = append(lines, rowStyle.Render(movementHistoryLine(styles, marker, entry)))
+		detail := movementHistoryDetail(entry)
+		if detail != "" {
+			lines = append(lines, styles.ProgramEmpty.Render("  "+detail))
 		}
 	}
 	if end < len(entries) {
@@ -155,7 +152,7 @@ func renderExerciseHistory(styles theme.Styles, entries []data.GymSessionEntry, 
 	return styles.ProgramPanel.Width(styles.Box.GetWidth()).Render(strings.Join(lines, "\n"))
 }
 
-func renderWeightProgression(styles theme.Styles, entries []data.GymSessionEntry) []string {
+func renderProgressSummary(styles theme.Styles, entries []data.GymSessionEntry) []string {
 	points := weightedChartEntries(entries)
 	if len(points) == 0 {
 		return []string{styles.ProgramEmpty.Render("no weighted logs to graph yet")}
@@ -165,41 +162,19 @@ func renderWeightProgression(styles theme.Styles, entries []data.GymSessionEntry
 	}
 
 	contentW := max(24, styles.Box.GetWidth()-8)
-	chartW := min(54, max(12, contentW-12))
-	chartH := 5
-	minWeight, maxWeight := weightRange(points)
-	rows := make([][]rune, chartH)
-	for i := range rows {
-		rows[i] = []rune(strings.Repeat(" ", chartW))
+	_, maxWeight := weightRange(points)
+	first := points[0]
+	last := points[len(points)-1]
+	delta := last.Weight - first.Weight
+	summary := fmt.Sprintf("best %.1f   latest %.1f   change %+0.1f", maxWeight, last.Weight, delta)
+	if contentW < 48 {
+		summary = fmt.Sprintf("best %.1f  latest %.1f", maxWeight, last.Weight)
 	}
 
-	previousX := 0
-	previousY := pointY(points[0].Weight, minWeight, maxWeight, chartH)
-	for i, point := range points {
-		x := pointX(i, len(points), chartW)
-		y := pointY(point.Weight, minWeight, maxWeight, chartH)
-		if i > 0 {
-			drawSegment(rows, previousX, previousY, x, y)
-		}
-		rows[y][x] = '●'
-		previousX = x
-		previousY = y
-	}
-
-	lines := []string{styles.ProgramPanelTitle.Render("weight progression")}
-	for y, row := range rows {
-		label := "       "
-		switch y {
-		case 0:
-			label = fmt.Sprintf("%6.1f", maxWeight)
-		case chartH - 1:
-			label = fmt.Sprintf("%6.1f", minWeight)
-		}
-		lines = append(lines, styles.ProgramEmpty.Render(label+" │ ")+styles.ProgramItem.Render(string(row)))
-	}
-	lines = append(lines, styles.ProgramEmpty.Render("       └ "+strings.Repeat("─", chartW)))
-	lines = append(lines, styles.ProgramEmpty.Render("dates  "+compactChartLabels(points, chartW, chartDateLabel)))
-	lines = append(lines, styles.ProgramEmpty.Render("reps   "+compactChartLabels(points, chartW, chartRepLabel)))
+	lines := []string{styles.ProgramPanelTitle.Render("progress")}
+	lines = append(lines, styles.ProgramEmpty.Render(summary))
+	lines = append(lines, styles.ProgramItem.Render(weightSparkline(points)))
+	lines = append(lines, styles.ProgramEmpty.Render(progressChips(points, contentW)))
 	return lines
 }
 
@@ -233,68 +208,45 @@ func weightRange(points []data.GymSessionEntry) (float64, float64) {
 	return minWeight, maxWeight
 }
 
-func pointX(index int, length int, width int) int {
-	if length <= 1 {
-		return width / 2
-	}
-	return index * (width - 1) / (length - 1)
-}
-
-func pointY(weight float64, minWeight float64, maxWeight float64, height int) int {
-	if maxWeight == minWeight {
-		return height / 2
-	}
-	ratio := (maxWeight - weight) / (maxWeight - minWeight)
-	y := int(ratio * float64(height-1))
-	if y < 0 {
-		return 0
-	}
-	if y >= height {
-		return height - 1
-	}
-	return y
-}
-
-func drawSegment(rows [][]rune, x1 int, y1 int, x2 int, y2 int) {
-	if x2 <= x1 {
-		return
-	}
-	for x := x1 + 1; x < x2; x++ {
-		t := float64(x-x1) / float64(x2-x1)
-		y := y1 + int(float64(y2-y1)*t)
-		if rows[y][x] == ' ' {
-			rows[y][x] = '─'
+func weightSparkline(points []data.GymSessionEntry) string {
+	minWeight, maxWeight := weightRange(points)
+	levels := []rune("▁▂▃▄▅▆▇█")
+	values := make([]rune, 0, len(points))
+	for _, point := range points {
+		level := 0
+		if maxWeight > minWeight {
+			level = int((point.Weight - minWeight) / (maxWeight - minWeight) * float64(len(levels)-1))
 		}
-	}
-}
-
-func compactChartLabels(points []data.GymSessionEntry, width int, label func(data.GymSessionEntry) string) string {
-	if len(points) == 0 {
-		return ""
-	}
-	row := []rune(strings.Repeat(" ", width))
-	for i, point := range points {
-		value := []rune(label(point))
-		x := pointX(i, len(points), width)
-		if x+len(value) > width {
-			x = max(0, width-len(value))
+		if level < 0 {
+			level = 0
 		}
-		for j, char := range value {
-			row[x+j] = char
+		if level >= len(levels) {
+			level = len(levels) - 1
 		}
+		values = append(values, levels[level])
 	}
-	return strings.TrimRight(string(row), " ")
+	return strings.Join(strings.Split(string(values), ""), " ")
 }
 
-func chartDateLabel(entry data.GymSessionEntry) string {
-	if len(entry.StartedAt) >= 10 {
-		return entry.StartedAt[5:10]
+func progressChips(points []data.GymSessionEntry, width int) string {
+	chips := make([]string, 0, len(points))
+	for _, point := range points {
+		chips = append(chips, fmt.Sprintf("%s %.1f %s", shortDate(point.StartedAt), point.Weight, historySetRepLabel(point)))
 	}
-	return entry.StartedAt
+	row := strings.Join(chips, "  ·  ")
+	if lipgloss.Width(row) <= width {
+		return row
+	}
+	first := points[0]
+	last := points[len(points)-1]
+	return fmt.Sprintf("%s %.1f %s  →  %s %.1f %s", shortDate(first.StartedAt), first.Weight, historySetRepLabel(first), shortDate(last.StartedAt), last.Weight, historySetRepLabel(last))
 }
 
-func chartRepLabel(entry data.GymSessionEntry) string {
-	return historySetRepLabel(entry)
+func shortDate(value string) string {
+	if len(value) >= 10 {
+		return value[5:10]
+	}
+	return value
 }
 
 func sessionStateLine(session data.GymSession) string {
@@ -310,6 +262,22 @@ func historyEntryLine(entry data.GymSessionEntry) string {
 		line += fmt.Sprintf("  @ %.1f", entry.Weight)
 	}
 	return line
+}
+
+func movementHistoryLine(styles theme.Styles, marker string, entry data.GymSessionEntry) string {
+	id := styles.HelperKey.Render(fmt.Sprintf("#%d", entry.SessionId))
+	return fmt.Sprintf("%s %s  %s  %s", marker, id, shortDate(entry.StartedAt), historyEntryLine(entry))
+}
+
+func movementHistoryDetail(entry data.GymSessionEntry) string {
+	parts := []string{}
+	if entry.Workout != "" {
+		parts = append(parts, entry.Workout)
+	}
+	if entry.Notes != "" {
+		parts = append(parts, entry.Notes)
+	}
+	return strings.Join(parts, "  /  ")
 }
 
 func historySetRepLabel(entry data.GymSessionEntry) string {

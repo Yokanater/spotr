@@ -133,4 +133,7 @@ func TestRenderHeaderShowsLog(t *testing.T) {
 	if !strings.Contains(view, "log") {
 		t.Fatalf("RenderHeader() did not render log nav item; view:\n%s", view)
 	}
+	if strings.Contains(view, "/ program") {
+		t.Fatalf("RenderHeader() rendered redundant active suffix; view:\n%s", view)
+	}
 }
