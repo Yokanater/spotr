@@ -142,6 +142,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.appH = min(m.termH, m.maxH)
 		m.styles = theme.NewStyles(m.theme, m.appW, m.appH)
 		m.input.SetWidth(max(1, min(m.theme.InputMax, m.appW-m.theme.PadX)))
+	case tea.MouseWheelMsg:
+		return m.handleMouseWheel(msg)
 	case tea.KeyPressMsg:
 		switch m.mode {
 		case modeQuit:
@@ -250,10 +252,14 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.viewRecentLogs()
 	case "f":
 		m.finishLogSession()
-	case "down":
+	case "down", "j":
 		m.moveCursor(1)
-	case "up":
+	case "up", "k":
 		m.moveCursor(-1)
+	case "pgdown", "ctrl+f":
+		m.moveCursor(5)
+	case "pgup", "ctrl+b":
+		m.moveCursor(-5)
 	case "enter":
 		m.openSelected()
 	case "?":
@@ -267,6 +273,17 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.requestQuit()
 	default:
 		m.status = m.normalHelp()
+	}
+	return m, cmd
+}
+
+func (m model) handleMouseWheel(msg tea.MouseWheelMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg.Mouse().Button {
+	case tea.MouseWheelDown:
+		m.moveCursor(1)
+	case tea.MouseWheelUp:
+		m.moveCursor(-1)
 	}
 	return m, cmd
 }
@@ -436,7 +453,7 @@ func (m *model) openSelectedHistory() {
 		m.historyBackCursor = m.historyCursor
 		m.historyEntries = entries
 		m.historyCursor = 0
-		m.status = helperMessage("up/down scroll entries", "e edit", "d delete", "b back to logs")
+		m.status = helperMessage("j/k scroll", "e edit", "d delete", "b back to logs")
 		return
 	}
 	if len(m.historySessions) == 0 {
@@ -454,7 +471,7 @@ func (m *model) openSelectedHistory() {
 	m.historyBackEntries = nil
 	m.activeSession = session
 	m.historyCursor = 0
-	m.status = helperMessage("up/down scroll entries", "e edit", "d delete", "b back to logs")
+	m.status = helperMessage("j/k scroll", "e edit", "d delete", "b back to logs")
 }
 
 func clampIndex(current int, length int) int {
@@ -480,7 +497,7 @@ func (m *model) goBack() {
 				m.historyEntries = m.historyBackEntries
 				m.historyBackEntries = nil
 				m.historyCursor = clampIndex(m.historyBackCursor, len(m.historyEntries))
-				m.status = helperMessage("up/down choose log", "enter open", "e edit", "d delete", "b training")
+				m.status = helperMessage("j/k scroll", "enter open", "e edit", "d delete", "b training")
 				return
 			}
 			if m.historySessions == nil {
@@ -493,7 +510,7 @@ func (m *model) goBack() {
 			m.activeSession = data.GymSession{}
 			m.historyEntries = nil
 			m.historyCursor = clampIndex(m.historyCursor, len(m.historySessions))
-			m.status = helperMessage("up/down choose log", "enter open", "b training")
+			m.status = helperMessage("j/k scroll", "enter open", "b training")
 			return
 		}
 		m.screen = screenProgram
@@ -543,9 +560,9 @@ func (m model) currentLevel() screen {
 func (m model) normalHelp() string {
 	if m.screen == screenHistory {
 		if m.historyEntries != nil {
-			return helperMessage("up/down move", "enter open", "e edit", "d delete", "b back")
+			return helperMessage("j/k scroll", "enter open", "e edit", "d delete", "b back")
 		}
-		return helperMessage("up/down move", "enter open", "b back")
+		return helperMessage("j/k scroll", "enter open", "b back")
 	}
 
 	switch m.currentLevel() {
@@ -601,7 +618,7 @@ func renderHelperPart(styles theme.Styles, part string) string {
 
 func isHelperKey(value string) bool {
 	switch value {
-	case ":", "?", "a", "b", "d", "e", "enter", "esc", "f", "l", "n", "s", "v", "up/down", "y":
+	case ":", "?", "a", "b", "d", "e", "enter", "esc", "f", "j/k", "l", "n", "s", "v", "up/down", "y":
 		return true
 	default:
 		return false
@@ -802,7 +819,7 @@ func (m *model) viewRecentLogs() {
 		m.historyTitle = exercise.Name + " across " + m.activeProgram.ProgramName
 		m.historyCursor = 0
 		m.screen = screenHistory
-		m.status = helperMessage("linked by exercise name", "enter open", "e edit", "d delete", "b back")
+		m.status = helperMessage("j/k scroll", "enter open", "e edit", "d delete", "b back")
 		return
 	}
 
@@ -822,7 +839,7 @@ func (m *model) viewWorkoutSessions(workout data.Workout) {
 	m.historyTitle = workout.Name + " sessions"
 	m.historyCursor = clampIndex(m.historyCursor, len(sessions))
 	m.screen = screenHistory
-	m.status = helperMessage("up/down choose log", "enter open", "b back")
+	m.status = helperMessage("j/k scroll", "enter open", "b back")
 }
 
 func (m *model) workoutForHistory() (data.Workout, bool) {
@@ -1066,6 +1083,7 @@ func (m model) View() tea.View {
 	)
 	v.BackgroundColor = m.theme.Background
 	v.AltScreen = true
+	v.MouseMode = tea.MouseModeCellMotion
 	return v
 }
 
@@ -1404,7 +1422,7 @@ func (m *model) handleHistory(args []string) {
 		m.historyTitle = m.activeWorkout.Name + " sessions"
 		m.historyCursor = clampIndex(m.historyCursor, len(sessions))
 		m.screen = screenHistory
-		m.status = helperMessage("up/down choose log", "enter open", "b back")
+		m.status = helperMessage("j/k scroll", "enter open", "b back")
 
 	case "show":
 		if len(args) < 2 {
@@ -1426,7 +1444,7 @@ func (m *model) handleHistory(args []string) {
 		m.activeSession = session
 		m.historyTitle = m.activeWorkout.Name + " sessions"
 		m.screen = screenHistory
-		m.status = helperMessage("up/down scroll entries", "e edit", "d delete", "b back")
+		m.status = helperMessage("j/k scroll", "e edit", "d delete", "b back")
 
 	default:
 		m.status = fmt.Sprintf("unknown history command: %s", args[0])

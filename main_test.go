@@ -4,6 +4,8 @@ import (
 	"ruffnut/data"
 	"strings"
 	"testing"
+
+	tea "charm.land/bubbletea/v2"
 )
 
 func TestParseLoggedExerciseValue(t *testing.T) {
@@ -60,7 +62,7 @@ func TestHelperMessageUsesDotSeparator(t *testing.T) {
 }
 
 func TestIsHelperKeyRecognizesOnlyKeyTokens(t *testing.T) {
-	for _, key := range []string{"a", ":", "?", "enter", "esc", "up/down", "v"} {
+	for _, key := range []string{"a", ":", "?", "enter", "esc", "j/k", "up/down", "v"} {
 		if !isHelperKey(key) {
 			t.Fatalf("isHelperKey(%q) = false; want true", key)
 		}
@@ -70,5 +72,28 @@ func TestIsHelperKeyRecognizesOnlyKeyTokens(t *testing.T) {
 		if isHelperKey(word) {
 			t.Fatalf("isHelperKey(%q) = true; want false", word)
 		}
+	}
+}
+
+func TestNormalKeySupportsVimHistoryScroll(t *testing.T) {
+	m := model{
+		mode:   modeNormal,
+		screen: screenHistory,
+		historyEntries: []data.GymSessionEntry{
+			{EntryId: 1},
+			{EntryId: 2},
+		},
+	}
+
+	updated, _ := m.handleNormalKey(tea.KeyPressMsg{Code: 'j'})
+	got := updated.(model)
+	if got.historyCursor != 1 {
+		t.Fatalf("historyCursor after j = %d; want 1", got.historyCursor)
+	}
+
+	updated, _ = got.handleNormalKey(tea.KeyPressMsg{Code: 'k'})
+	got = updated.(model)
+	if got.historyCursor != 0 {
+		t.Fatalf("historyCursor after k = %d; want 0", got.historyCursor)
 	}
 }

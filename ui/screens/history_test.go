@@ -61,6 +61,32 @@ func TestWeightProgressionSortsByDate(t *testing.T) {
 	}
 }
 
+func TestHistoryViewKeepsSelectedMovementLogVisible(t *testing.T) {
+	styles := theme.NewStyles(theme.Default(), 100, 14)
+	view := HistoryView(
+		styles,
+		data.Workout{WorkoutId: 1, Name: "push"},
+		"bench across ppl",
+		nil,
+		4,
+		data.GymSession{},
+		[]data.GymSessionEntry{
+			{SessionId: 1, Exercise: "bench", Workout: "push", StartedAt: "2026-07-01T10:00:00Z", Sets: 3, Reps: 8, Weight: 135},
+			{SessionId: 2, Exercise: "bench", Workout: "push", StartedAt: "2026-07-02T10:00:00Z", Sets: 3, Reps: 8, Weight: 140},
+			{SessionId: 3, Exercise: "bench", Workout: "push", StartedAt: "2026-07-03T10:00:00Z", Sets: 3, Reps: 8, Weight: 145},
+			{SessionId: 4, Exercise: "bench", Workout: "push", StartedAt: "2026-07-04T10:00:00Z", Sets: 3, Reps: 8, Weight: 147.5},
+			{SessionId: 5, Exercise: "bench", Workout: "push", StartedAt: "2026-07-05T10:00:00Z", Sets: 3, Reps: 8, Weight: 150},
+		},
+	)
+
+	if !strings.Contains(view, "#5") {
+		t.Fatalf("HistoryView() did not keep selected movement log visible; view:\n%s", view)
+	}
+	if strings.Contains(view, "#1") {
+		t.Fatalf("HistoryView() rendered the top movement log instead of scrolling; view:\n%s", view)
+	}
+}
+
 func TestHistoryViewKeepsSelectedSessionVisible(t *testing.T) {
 	styles := theme.NewStyles(theme.Default(), 100, 16)
 	view := HistoryView(

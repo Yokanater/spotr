@@ -88,7 +88,8 @@ func renderSessionDetail(styles theme.Styles, session data.GymSession, entries [
 		return styles.ProgramPanel.Width(styles.Box.GetWidth()).Render(strings.Join(lines, "\n"))
 	}
 
-	start, end := visibleRange(len(entries), cursor, styles.ProgramListRows)
+	rows := max(1, styles.ProgramListRows-2)
+	start, end := visibleRange(len(entries), cursor, rows)
 	if start > 0 {
 		lines = append(lines, styles.ProgramEmpty.Render("  ..."))
 	}
@@ -122,10 +123,12 @@ func renderExerciseHistory(styles theme.Styles, entries []data.GymSessionEntry, 
 		return styles.ProgramPanel.Width(styles.Box.GetWidth()).Render(strings.Join(lines, "\n"))
 	}
 
-	lines = append(lines, renderProgressSummary(styles, entries)...)
+	progressLines := renderProgressSummary(styles, entries)
+	lines = append(lines, progressLines...)
 	lines = append(lines, "")
 
-	start, end := visibleRange(len(entries), cursor, styles.ProgramListRows)
+	rows := max(1, styles.ProgramListRows-len(progressLines)-1)
+	start, end := visibleRange(len(entries), cursor, rows)
 	if start > 0 {
 		lines = append(lines, styles.ProgramEmpty.Render("  ..."))
 	}
