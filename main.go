@@ -41,6 +41,7 @@ const (
 	modeInput  mode = "input"
 	modeCmd    mode = "command"
 	modeQuit   mode = "quit"
+	modeDelete mode = "delete"
 )
 
 const (
@@ -49,6 +50,7 @@ const (
 	inputAddWorkout  inputPurpose = "add_workout"
 	inputAddExercise inputPurpose = "add_exercise"
 	inputLogExercise inputPurpose = "log_exercise"
+	inputEditLog     inputPurpose = "edit_log"
 )
 
 const (
@@ -93,6 +95,8 @@ type model struct {
 	activeProgram      data.Program
 	activeWorkout      data.Workout
 	activeExercise     data.Exercise
+	editingEntry       data.GymSessionEntry
+	deletingEntry      data.GymSessionEntry
 }
 
 func initialModel(st *store.Store) model {
@@ -142,6 +146,9 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		switch m.mode {
 		case modeQuit:
 			return m.handleQuitKey(msg)
+
+		case modeDelete:
+			return m.handleDeleteKey(msg)
 
 		case modeCmd:
 			return m.handleCommandKey(msg)
@@ -235,6 +242,10 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.startLogSession()
 	case "l":
 		m.startLogExerciseInput()
+	case "e":
+		m.startEditLogEntryInput()
+	case "d":
+		m.requestDeleteLogEntry()
 	case "v":
 		m.viewRecentLogs()
 	case "f":
@@ -271,6 +282,23 @@ func (m model) handleQuitKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	default:
 		m.status = "quit? y/n"
+		return m, cmd
+	}
+}
+
+func (m model) handleDeleteKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
+	var cmd tea.Cmd
+	switch msg.String() {
+	case "y", "Y", "enter":
+		m.confirmDeleteLogEntry()
+		return m, cmd
+	case "n", "N", "esc", "q":
+		m.mode = modeNormal
+		m.deletingEntry = data.GymSessionEntry{}
+		m.status = "delete cancelled"
+		return m, cmd
+	default:
+		m.status = helperMessage("delete selected log?", "y confirm", "n cancel")
 		return m, cmd
 	}
 }
@@ -383,7 +411,7 @@ func (m *model) openSelected() {
 
 func (m *model) openSelectedHistory() {
 	if m.activeSession.SessionId != 0 {
-		m.status = helperMessage("b back to logs", ": command")
+		m.status = helperMessage("e edit log", "d delete log", "b back to logs", ": command")
 		return
 	}
 	if m.historyEntries != nil {
@@ -408,7 +436,7 @@ func (m *model) openSelectedHistory() {
 		m.historyBackCursor = m.historyCursor
 		m.historyEntries = entries
 		m.historyCursor = 0
-		m.status = helperMessage("up/down scroll entries", "b back to logs")
+		m.status = helperMessage("up/down scroll entries", "e edit", "d delete", "b back to logs")
 		return
 	}
 	if len(m.historySessions) == 0 {
@@ -426,7 +454,7 @@ func (m *model) openSelectedHistory() {
 	m.historyBackEntries = nil
 	m.activeSession = session
 	m.historyCursor = 0
-	m.status = helperMessage("up/down scroll entries", "b back to logs")
+	m.status = helperMessage("up/down scroll entries", "e edit", "d delete", "b back to logs")
 }
 
 func clampIndex(current int, length int) int {
@@ -452,7 +480,7 @@ func (m *model) goBack() {
 				m.historyEntries = m.historyBackEntries
 				m.historyBackEntries = nil
 				m.historyCursor = clampIndex(m.historyBackCursor, len(m.historyEntries))
-				m.status = helperMessage("up/down choose log", "enter open", "b training")
+				m.status = helperMessage("up/down choose log", "enter open", "e edit", "d delete", "b training")
 				return
 			}
 			if m.historySessions == nil {
@@ -513,6 +541,13 @@ func (m model) currentLevel() screen {
 }
 
 func (m model) normalHelp() string {
+	if m.screen == screenHistory {
+		if m.historyEntries != nil {
+			return helperMessage("up/down move", "enter open", "e edit", "d delete", "b back")
+		}
+		return helperMessage("up/down move", "enter open", "b back")
+	}
+
 	switch m.currentLevel() {
 	case screenPrograms:
 		if len(m.programs) == 0 {
@@ -566,7 +601,7 @@ func renderHelperPart(styles theme.Styles, part string) string {
 
 func isHelperKey(value string) bool {
 	switch value {
-	case ":", "?", "a", "b", "enter", "esc", "f", "l", "s", "v", "up/down":
+	case ":", "?", "a", "b", "d", "e", "enter", "esc", "f", "l", "n", "s", "v", "up/down", "y":
 		return true
 	default:
 		return false
@@ -643,6 +678,83 @@ func (m *model) submitLoggedExercise(value string) {
 	m.status = "Logged " + formatSessionEntry(entry)
 }
 
+func (m *model) startEditLogEntryInput() {
+	entry, ok := m.selectedLogEntry()
+	if !ok {
+		m.status = "select a logged entry first"
+		return
+	}
+
+	m.mode = modeInput
+	m.inputPurpose = inputEditLog
+	m.editingEntry = entry
+	m.input.SetValue(logEntryInputValue(entry))
+	m.input.Placeholder = "sets reps or reps/reps [weight] [notes]"
+	m.input.Prompt = "edit log #" + strconv.FormatInt(entry.EntryId, 10) + " $ "
+	m.status = helperMessage("edit sets reps weight notes", "enter save", "esc cancel")
+}
+
+func (m *model) submitEditedLogEntry(value string) {
+	if m.editingEntry.EntryId == 0 {
+		m.status = "no log selected to edit"
+		return
+	}
+
+	sets, reps, repsDetail, weight, notes, err := parseLoggedExerciseValue(value)
+	if err != nil {
+		m.status = err.Error()
+		return
+	}
+	if err := m.store.UpdateGymSessionEntry(m.editingEntry, sets, reps, repsDetail, weight, notes); err != nil {
+		m.status = err.Error()
+		return
+	}
+
+	updated := m.editingEntry
+	updated.Sets = sets
+	updated.Reps = reps
+	updated.RepsDetail = repsDetail
+	updated.Weight = weight
+	updated.Notes = notes
+	m.editingEntry = data.GymSessionEntry{}
+	m.refreshHistoryAfterEntryUpdate(updated)
+	m.status = "Updated " + formatSessionEntry(updated)
+}
+
+func (m *model) requestDeleteLogEntry() {
+	entry, ok := m.selectedLogEntry()
+	if !ok {
+		m.status = "select a logged entry first"
+		return
+	}
+	m.mode = modeDelete
+	m.deletingEntry = entry
+	m.inputPurpose = inputNone
+	m.input.SetValue("")
+	m.resetInputPrompt()
+	m.status = helperMessage("delete "+formatSessionEntry(entry)+"?", "y confirm", "n cancel")
+}
+
+func (m *model) confirmDeleteLogEntry() {
+	if m.deletingEntry.EntryId == 0 {
+		m.mode = modeNormal
+		m.status = "no log selected to delete"
+		return
+	}
+	deleted := m.deletingEntry
+	if err := m.store.DeleteGymSessionEntry(deleted); err != nil {
+		m.mode = modeNormal
+		m.deletingEntry = data.GymSessionEntry{}
+		m.status = err.Error()
+		return
+	}
+
+	m.mode = modeNormal
+	m.deletingEntry = data.GymSessionEntry{}
+	m.refreshHistoryAfterEntryDelete(deleted)
+	m.status = "Deleted " + formatSessionEntry(deleted)
+}
+
 func (m *model) finishLogSession() {
 	m.screen = screenProgram
 	if m.activeWorkout.WorkoutId == 0 {
@@ -690,7 +802,7 @@ func (m *model) viewRecentLogs() {
 		m.historyTitle = exercise.Name + " across " + m.activeProgram.ProgramName
 		m.historyCursor = 0
 		m.screen = screenHistory
-		m.status = helperMessage("linked by exercise name", "b back", ": command")
+		m.status = helperMessage("linked by exercise name", "enter open", "e edit", "d delete", "b back")
 		return
 	}
 
@@ -853,12 +965,17 @@ func (m *model) submitInput(purpose inputPurpose, value string) {
 		m.handleExercise(append([]string{"add"}, args...))
 	case inputLogExercise:
 		m.submitLoggedExercise(value)
+	case inputEditLog:
+		m.submitEditedLogEntry(value)
 	default:
 		m.status = "nothing to submit"
 	}
 }
 
 func inputCancelledStatus(purpose inputPurpose) string {
+	if purpose == inputEditLog {
+		return "edit cancelled"
+	}
 	if purpose == inputLogExercise {
 		return "log cancelled"
 	}
@@ -1309,11 +1426,79 @@ func (m *model) handleHistory(args []string) {
 		m.activeSession = session
 		m.historyTitle = m.activeWorkout.Name + " sessions"
 		m.screen = screenHistory
-		m.status = helperMessage("history list back to recent", "b back", ": command")
+		m.status = helperMessage("up/down scroll entries", "e edit", "d delete", "b back")
 
 	default:
 		m.status = fmt.Sprintf("unknown history command: %s", args[0])
 	}
+}
+
+func (m *model) selectedLogEntry() (data.GymSessionEntry, bool) {
+	if m.screen != screenHistory || len(m.historyEntries) == 0 {
+		return data.GymSessionEntry{}, false
+	}
+	m.historyCursor = clampIndex(m.historyCursor, len(m.historyEntries))
+	return m.historyEntries[m.historyCursor], true
+}
+
+func (m *model) refreshHistoryAfterEntryUpdate(entry data.GymSessionEntry) {
+	for i := range m.historyEntries {
+		if m.historyEntries[i].EntryId == entry.EntryId {
+			m.historyEntries[i].Sets = entry.Sets
+			m.historyEntries[i].Reps = entry.Reps
+			m.historyEntries[i].RepsDetail = entry.RepsDetail
+			m.historyEntries[i].Weight = entry.Weight
+			m.historyEntries[i].Notes = entry.Notes
+			break
+		}
+	}
+	for i := range m.historyBackEntries {
+		if m.historyBackEntries[i].EntryId == entry.EntryId {
+			m.historyBackEntries[i].Sets = entry.Sets
+			m.historyBackEntries[i].Reps = entry.Reps
+			m.historyBackEntries[i].RepsDetail = entry.RepsDetail
+			m.historyBackEntries[i].Weight = entry.Weight
+			m.historyBackEntries[i].Notes = entry.Notes
+			break
+		}
+	}
+
+	if m.activeSession.SessionId != 0 {
+		m.reloadActiveSessionEntries()
+	}
+}
+
+func (m *model) refreshHistoryAfterEntryDelete(entry data.GymSessionEntry) {
+	m.historyEntries = removeHistoryEntry(m.historyEntries, entry.EntryId)
+	m.historyBackEntries = removeHistoryEntry(m.historyBackEntries, entry.EntryId)
+	m.historyCursor = clampIndex(m.historyCursor, len(m.historyEntries))
+
+	if m.activeSession.SessionId != 0 {
+		m.reloadActiveSessionEntries()
+	}
+}
+
+func (m *model) reloadActiveSessionEntries() {
+	entries, err := m.store.ListGymSessionEntries(m.activeSession)
+	if err != nil {
+		m.status = err.Error()
+		return
+	}
+	m.historyEntries = entries
+	m.historyCursor = clampIndex(m.historyCursor, len(m.historyEntries))
+}
+
+func removeHistoryEntry(entries []data.GymSessionEntry, entryID int64) []data.GymSessionEntry {
+	if entries == nil {
+		return nil
+	}
+	filtered := entries[:0]
+	for _, entry := range entries {
+		if entry.EntryId != entryID {
+			filtered = append(filtered, entry)
+		}
+	}
+	return filtered
 }
 
 func (m *model) parseLogAddArgs(args []string) (data.Exercise, int, int, string, float64, string, error) {
@@ -1504,6 +1689,22 @@ func setRepLabel(entry data.GymSessionEntry) string {
 		return fmt.Sprintf("%dx%s", entry.Sets, entry.RepsDetail)
 	}
 	return fmt.Sprintf("%dx%d", entry.Sets, entry.Reps)
+}
+
+func logEntryInputValue(entry data.GymSessionEntry) string {
+	parts := []string{}
+	if entry.RepsDetail != "" {
+		parts = append(parts, entry.RepsDetail)
+	} else {
+		parts = append(parts, strconv.Itoa(entry.Sets), strconv.Itoa(entry.Reps))
+	}
+	if entry.Weight > 0 {
+		parts = append(parts, strconv.FormatFloat(entry.Weight, 'f', -1, 64))
+	}
+	if entry.Notes != "" {
+		parts = append(parts, entry.Notes)
+	}
+	return strings.Join(parts, " ")
 }
 
 func parseSetReps(setsArg string, repsArg string) (int, int, error) {

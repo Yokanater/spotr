@@ -546,6 +546,46 @@ func (s *Store) AddGymSessionEntry(session data.GymSession, exercise data.Exerci
 	return err
 }
 
+func (s *Store) UpdateGymSessionEntry(entry data.GymSessionEntry, sets int, reps int, repsDetail string, weight float64, notes string) error {
+	res, err := s.db.Exec(
+		`UPDATE gym_session_entries
+		SET sets = ?, reps = ?, reps_detail = ?, weight = ?, notes = ?
+		WHERE id = ?`,
+		sets,
+		reps,
+		repsDetail,
+		weight,
+		notes,
+		entry.EntryId,
+	)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func (s *Store) DeleteGymSessionEntry(entry data.GymSessionEntry) error {
+	res, err := s.db.Exec(`DELETE FROM gym_session_entries WHERE id = ?`, entry.EntryId)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
 func (s *Store) ListGymSessions(workout data.Workout, limit int) ([]data.GymSession, error) {
 	if limit <= 0 {
 		limit = 10

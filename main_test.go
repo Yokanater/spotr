@@ -41,6 +41,14 @@ func TestFormatSessionEntryShowsPerSetReps(t *testing.T) {
 	}
 }
 
+func TestLogEntryInputValuePrefillsEditableLog(t *testing.T) {
+	entry := data.GymSessionEntry{Sets: 2, Reps: 4, RepsDetail: "6/4", Weight: 135, Notes: "second set cooked"}
+	got := logEntryInputValue(entry)
+	if got != "6/4 135 second set cooked" {
+		t.Fatalf("logEntryInputValue() = %q; want editable per-set log value", got)
+	}
+}
+
 func TestHelperMessageUsesDotSeparator(t *testing.T) {
 	got := helperMessage("up/down move", "enter open program", "a add program")
 	if strings.Contains(got, ",") {

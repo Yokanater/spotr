@@ -117,6 +117,28 @@ func TestGymSessionLifecycle(t *testing.T) {
 		t.Fatalf("ListGymSessionEntries() reps detail = %q; want 6/4", entries[1].RepsDetail)
 	}
 
+	if err := st.UpdateGymSessionEntry(entries[0], 3, 9, "", 140, "moved well"); err != nil {
+		t.Fatalf("UpdateGymSessionEntry() error = %v", err)
+	}
+	entries, err = st.ListGymSessionEntries(session)
+	if err != nil {
+		t.Fatalf("ListGymSessionEntries() after update error = %v", err)
+	}
+	if entries[0].Sets != 3 || entries[0].Reps != 9 || entries[0].Weight != 140 || entries[0].Notes != "moved well" {
+		t.Fatalf("updated entry = %+v; want 3x9 @ 140 with notes", entries[0])
+	}
+
+	if err := st.DeleteGymSessionEntry(entries[1]); err != nil {
+		t.Fatalf("DeleteGymSessionEntry() error = %v", err)
+	}
+	entries, err = st.ListGymSessionEntries(session)
+	if err != nil {
+		t.Fatalf("ListGymSessionEntries() after delete error = %v", err)
+	}
+	if len(entries) != 1 || entries[0].RepsDetail != "" {
+		t.Fatalf("entries after delete = %+v; want only updated straight-set entry", entries)
+	}
+
 	if err := st.FinishGymSession(session, "solid push day"); err != nil {
 		t.Fatalf("FinishGymSession() error = %v", err)
 	}
@@ -154,8 +176,8 @@ func TestGymSessionLifecycle(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ListExerciseLogEntries() error = %v", err)
 	}
-	if len(linkedEntries) != 3 {
-		t.Fatalf("ListExerciseLogEntries() = %+v; want three linked bench entries", linkedEntries)
+	if len(linkedEntries) != 2 {
+		t.Fatalf("ListExerciseLogEntries() = %+v; want two linked bench entries after delete", linkedEntries)
 	}
 	if linkedEntries[0].Workout != "upper body" || linkedEntries[1].Workout != "push" {
 		t.Fatalf("ListExerciseLogEntries() workouts = %+v; want upper body then push", linkedEntries)
