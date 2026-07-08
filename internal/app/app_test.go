@@ -1,4 +1,4 @@
-package main
+package app
 
 import (
 	"ruffnut/data"
@@ -51,6 +51,24 @@ func TestLogEntryInputValuePrefillsEditableLog(t *testing.T) {
 	}
 }
 
+func TestExerciseInputValuePrefillsEditableExercise(t *testing.T) {
+	exercise := data.Exercise{Name: "Bench Press", Sets: 3, Reps: 8}
+	got := exerciseInputValue(exercise)
+	if got != "Bench Press 3 8" {
+		t.Fatalf("exerciseInputValue() = %q; want editable exercise value", got)
+	}
+}
+
+func TestParseExerciseValueSupportsNameWithDefaults(t *testing.T) {
+	name, sets, reps, err := parseExerciseValue(strings.Fields("Incline Bench 4 10"))
+	if err != nil {
+		t.Fatalf("parseExerciseValue() error = %v", err)
+	}
+	if name != "Incline Bench" || sets != 4 || reps != 10 {
+		t.Fatalf("parseExerciseValue() = %q, %d, %d; want Incline Bench, 4, 10", name, sets, reps)
+	}
+}
+
 func TestHelperMessageUsesDotSeparator(t *testing.T) {
 	got := helperMessage("up/down move", "enter open program", "a add program")
 	if strings.Contains(got, ",") {
@@ -95,5 +113,13 @@ func TestNormalKeySupportsVimHistoryScroll(t *testing.T) {
 	got = updated.(model)
 	if got.historyCursor != 0 {
 		t.Fatalf("historyCursor after k = %d; want 0", got.historyCursor)
+	}
+}
+
+func TestQuitConfirmationUsesHelperStatus(t *testing.T) {
+	m := model{mode: modeNormal}
+	m.requestQuit()
+	if m.status != helperMessage("quit spotr?", "y confirm", "n cancel") {
+		t.Fatalf("requestQuit() status = %q; want helper confirmation", m.status)
 	}
 }

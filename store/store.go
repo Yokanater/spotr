@@ -313,6 +313,71 @@ func (s *Store) SelectProgram(arg string) (data.Program, error) {
 	return program, err
 }
 
+func (s *Store) UpdateProgram(program data.Program, name string) error {
+	res, err := s.db.Exec(`UPDATE programs SET name = ? WHERE id = ?`, name, program.ProgramId)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func (s *Store) DeleteProgram(program data.Program) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`
+		DELETE FROM gym_session_entries
+		WHERE session_id IN (
+			SELECT gs.id
+			FROM gym_sessions gs
+			JOIN workouts w ON w.id = gs.workout_id
+			WHERE w.program_id = ?
+		)`,
+		program.ProgramId,
+	); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`
+		DELETE FROM gym_sessions
+		WHERE workout_id IN (SELECT id FROM workouts WHERE program_id = ?)`,
+		program.ProgramId,
+	); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`
+		DELETE FROM exercises
+		WHERE workout_id IN (SELECT id FROM workouts WHERE program_id = ?)`,
+		program.ProgramId,
+	); err != nil {
+		return err
+	}
+	if _, err := tx.Exec(`DELETE FROM workouts WHERE program_id = ?`, program.ProgramId); err != nil {
+		return err
+	}
+	res, err := tx.Exec(`DELETE FROM programs WHERE id = ?`, program.ProgramId)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return tx.Commit()
+}
+
 func (s *Store) CreateWorkout(name string, program data.Program) error {
 	date := time.Now().UTC().Format(time.RFC3339)
 
@@ -473,6 +538,52 @@ func (s *Store) UpdateExerciseDefaults(exercise data.Exercise, sets int, reps in
 		exercise.WorkoutId,
 	)
 	return err
+}
+
+func (s *Store) UpdateExercise(exercise data.Exercise, name string, sets int, reps int) error {
+	res, err := s.db.Exec(
+		`UPDATE exercises SET name = ?, sets = ?, reps = ? WHERE id = ? AND workout_id = ?`,
+		name,
+		sets,
+		reps,
+		exercise.ExerciseId,
+		exercise.WorkoutId,
+	)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return nil
+}
+
+func (s *Store) DeleteExercise(exercise data.Exercise) error {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+
+	if _, err := tx.Exec(`DELETE FROM gym_session_entries WHERE exercise_id = ?`, exercise.ExerciseId); err != nil {
+		return err
+	}
+	res, err := tx.Exec(`DELETE FROM exercises WHERE id = ? AND workout_id = ?`, exercise.ExerciseId, exercise.WorkoutId)
+	if err != nil {
+		return err
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if affected == 0 {
+		return sql.ErrNoRows
+	}
+	return tx.Commit()
 }
 
 func (s *Store) StartGymSession(workout data.Workout) (data.GymSession, error) {

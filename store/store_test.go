@@ -184,6 +184,134 @@ func TestGymSessionLifecycle(t *testing.T) {
 	}
 }
 
+func TestUpdateAndDeleteProgram(t *testing.T) {
+	st, err := NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	if err != nil {
+		t.Fatalf("NewSQLite() error = %v", err)
+	}
+	defer st.Close()
+
+	programID, err := st.CreateProgram("ppl")
+	if err != nil {
+		t.Fatalf("CreateProgram() error = %v", err)
+	}
+	program := data.Program{ProgramId: programID, ProgramName: "ppl"}
+	if err := st.CreateWorkout("push", program); err != nil {
+		t.Fatalf("CreateWorkout() error = %v", err)
+	}
+	workout, err := st.SelectWorkout("push", program)
+	if err != nil {
+		t.Fatalf("SelectWorkout() error = %v", err)
+	}
+	if err := st.CreateExercise("bench", 3, 8, workout); err != nil {
+		t.Fatalf("CreateExercise() error = %v", err)
+	}
+	exercise, err := st.SelectExercise("bench", workout)
+	if err != nil {
+		t.Fatalf("SelectExercise() error = %v", err)
+	}
+	session, err := st.StartGymSession(workout)
+	if err != nil {
+		t.Fatalf("StartGymSession() error = %v", err)
+	}
+	if err := st.AddGymSessionEntry(session, exercise, 3, 8, "", 135, ""); err != nil {
+		t.Fatalf("AddGymSessionEntry() error = %v", err)
+	}
+
+	if err := st.UpdateProgram(program, "powerbuilding"); err != nil {
+		t.Fatalf("UpdateProgram() error = %v", err)
+	}
+	renamed, err := st.SelectProgram("powerbuilding")
+	if err != nil {
+		t.Fatalf("SelectProgram() renamed error = %v", err)
+	}
+	if renamed.ProgramId != program.ProgramId {
+		t.Fatalf("renamed program id = %d; want %d", renamed.ProgramId, program.ProgramId)
+	}
+
+	if err := st.DeleteProgram(renamed); err != nil {
+		t.Fatalf("DeleteProgram() error = %v", err)
+	}
+	programs, err := st.ListPrograms()
+	if err != nil {
+		t.Fatalf("ListPrograms() error = %v", err)
+	}
+	if len(programs) != 0 {
+		t.Fatalf("ListPrograms() = %+v; want deleted program removed", programs)
+	}
+	var sessionCount int
+	if err := st.db.QueryRow(`SELECT COUNT(*) FROM gym_sessions`).Scan(&sessionCount); err != nil {
+		t.Fatalf("count sessions: %v", err)
+	}
+	if sessionCount != 0 {
+		t.Fatalf("session count = %d; want cascade cleanup", sessionCount)
+	}
+}
+
+func TestUpdateAndDeleteExercise(t *testing.T) {
+	st, err := NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	if err != nil {
+		t.Fatalf("NewSQLite() error = %v", err)
+	}
+	defer st.Close()
+
+	programID, err := st.CreateProgram("ppl")
+	if err != nil {
+		t.Fatalf("CreateProgram() error = %v", err)
+	}
+	program := data.Program{ProgramId: programID, ProgramName: "ppl"}
+	if err := st.CreateWorkout("push", program); err != nil {
+		t.Fatalf("CreateWorkout() error = %v", err)
+	}
+	workout, err := st.SelectWorkout("push", program)
+	if err != nil {
+		t.Fatalf("SelectWorkout() error = %v", err)
+	}
+	if err := st.CreateExercise("bench", 3, 8, workout); err != nil {
+		t.Fatalf("CreateExercise() error = %v", err)
+	}
+	exercise, err := st.SelectExercise("bench", workout)
+	if err != nil {
+		t.Fatalf("SelectExercise() error = %v", err)
+	}
+	session, err := st.StartGymSession(workout)
+	if err != nil {
+		t.Fatalf("StartGymSession() error = %v", err)
+	}
+	if err := st.AddGymSessionEntry(session, exercise, 3, 8, "", 135, ""); err != nil {
+		t.Fatalf("AddGymSessionEntry() error = %v", err)
+	}
+
+	if err := st.UpdateExercise(exercise, "barbell bench", 4, 6); err != nil {
+		t.Fatalf("UpdateExercise() error = %v", err)
+	}
+	renamed, err := st.SelectExercise("barbell bench", workout)
+	if err != nil {
+		t.Fatalf("SelectExercise() renamed error = %v", err)
+	}
+	if renamed.ExerciseId != exercise.ExerciseId || renamed.Sets != 4 || renamed.Reps != 6 {
+		t.Fatalf("renamed exercise = %+v; want same id with 4x6 defaults", renamed)
+	}
+
+	if err := st.DeleteExercise(renamed); err != nil {
+		t.Fatalf("DeleteExercise() error = %v", err)
+	}
+	exercises, err := st.ListExercises(workout)
+	if err != nil {
+		t.Fatalf("ListExercises() error = %v", err)
+	}
+	if len(exercises) != 0 {
+		t.Fatalf("ListExercises() = %+v; want deleted exercise removed", exercises)
+	}
+	entries, err := st.ListGymSessionEntries(session)
+	if err != nil {
+		t.Fatalf("ListGymSessionEntries() error = %v", err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("ListGymSessionEntries() = %+v; want deleted exercise logs removed", entries)
+	}
+}
+
 func openLegacyDB(t *testing.T, path string) *sql.DB {
 	t.Helper()
 
