@@ -1,6 +1,6 @@
 # ruffnut
 
-Terminal workout planning and lift logging.
+Workout logging for nerds on the terminal
 
 ## Run
 
@@ -33,7 +33,7 @@ go test ./...
 - `?`: help
 - `q`: quit with confirmation
 
-Arrow keys still work as aliases for movement.
+Arrow keys still work as aliases
 
 ## Templates
 
@@ -71,22 +71,4 @@ Examples:
 
 Community templates can be added by opening a PR with a JSON file under
 `templates/programs/`. See `templates/README.md` and
-`templates/schema/program-template.schema.json`. PRs run `go test ./...` in CI.
-
-## Editing and Deleting
-
-Command mode supports edit/delete flows for the core records:
-
-```text
-program edit <name>
-program delete <id|name>
-workout edit <name>
-workout delete <id|name>
-exercise edit <name> [sets] [reps]
-exercise delete <id|name>
-log edit <entry-id> <sets> <reps> [weight] [notes]
-log delete <entry-id>
-```
-
-The TUI also supports `e` and `d` on selectable programs, workouts,
-exercises, and log entries.
+`templates/schema/program-template.schema.json`. PRs will run `go test ./...` in CI
