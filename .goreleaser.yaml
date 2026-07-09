@@ -1,0 +1,81 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+version: 2
+
+project_name: spotr
+
+before:
+  hooks:
+    - go mod download
+    - go test ./...
+
+builds:
+  - id: spotr
+    main: .
+    binary: spotr
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - darwin
+      - linux
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+
+archives:
+  - id: spotr
+    ids:
+      - spotr
+    formats:
+      - tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else }}{{ .Arch }}{{ end }}
+    files:
+      - readme.md
+      - templates/**/*
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+
+checksum:
+  name_template: checksums.txt
+
+homebrew_casks:
+  - name: spotr
+    ids:
+      - spotr
+    binaries:
+      - spotr
+    repository:
+      owner: Yokanater
+      name: homebrew-tap
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Casks
+    homepage: https://github.com/Yokanater/spotr
+    description: Workout logging for nerds on the terminal
+    caveats: |
+      spotr stores spotr.db in the directory where you run it.
+
+snapshot:
+  version_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  footer: |
+
+    ---
+
+    Released by [GoReleaser](https://github.com/goreleaser/goreleaser).
