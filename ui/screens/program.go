@@ -30,7 +30,7 @@ func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.W
 	}
 
 	subtitle := styles.ProgramSubtitle.Render(strings.Join(context, " / "))
-	programPanel := renderProgramSection(styles, "01 programs", programNames(programs), "press a to add program", programCursor)
+	programPanel := renderProgramSection(styles, "01 programs", programNames(programs), "press a to add program or t templates", programCursor)
 	workoutPanel := renderProgramSection(styles, "02 workouts", workoutNames(workouts), "press a to add workout", workoutCursor)
 	exercisePanel := renderExerciseSection(styles, "03 exercises", exercises, "press a to add exercise", exerciseCursor)
 

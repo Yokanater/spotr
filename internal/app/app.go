@@ -35,6 +35,7 @@ const (
 	inputLogExercise  inputPurpose = "log_exercise"
 	inputEditLog      inputPurpose = "edit_log"
 	inputEditProgram  inputPurpose = "edit_program"
+	inputEditWorkout  inputPurpose = "edit_workout"
 	inputEditExercise inputPurpose = "edit_exercise"
 )
 
@@ -42,6 +43,7 @@ const (
 	deleteNone     deleteTarget = ""
 	deleteLog      deleteTarget = "log"
 	deleteProgram  deleteTarget = "program"
+	deleteWorkout  deleteTarget = "workout"
 	deleteExercise deleteTarget = "exercise"
 )
 
@@ -52,6 +54,7 @@ const (
 	screenWorkouts  screen = "workouts"
 	screenExercises screen = "exercises"
 	screenHistory   screen = "history"
+	screenTemplates screen = "templates"
 	screenHelp      screen = "help"
 )
 
@@ -82,6 +85,8 @@ type model struct {
 	historyEntries     []data.GymSessionEntry
 	historyBackEntries []data.GymSessionEntry
 	historyBackCursor  int
+	templateFiles      []programTemplateFile
+	templateCursor     int
 	activeSession      data.GymSession
 	historyTitle       string
 	activeProgram      data.Program
@@ -89,9 +94,11 @@ type model struct {
 	activeExercise     data.Exercise
 	editingEntry       data.GymSessionEntry
 	editingProgram     data.Program
+	editingWorkout     data.Workout
 	editingExercise    data.Exercise
 	deletingEntry      data.GymSessionEntry
 	deletingProgram    data.Program
+	deletingWorkout    data.Workout
 	deletingExercise   data.Exercise
 	deleteTarget       deleteTarget
 }
@@ -157,6 +164,9 @@ func (m model) View() tea.View {
 
 	case screenHistory:
 		screen = screens.HistoryView(screenStyles, m.activeWorkout, m.historyTitle, m.historySessions, m.historyCursor, m.activeSession, m.historyEntries)
+
+	case screenTemplates:
+		screen = screens.TemplatesView(screenStyles, m.templateItems(), m.templateCursor)
 
 	}
 	screen = lipgloss.NewStyle().

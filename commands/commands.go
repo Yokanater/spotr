@@ -38,25 +38,25 @@ var Registry = map[string]Spec{
 	"program": {
 		Name:    "program",
 		Aliases: []string{"prog"},
-		Usage:   "program list | program add <name> | program select <id|name>",
-		Summary: "list, add, or select workout programs",
+		Usage:   "program list | program add <name> | program select <id|name> | program edit <name> | program delete <id|name>",
+		Summary: "list, add, select, edit, or delete workout programs",
 	},
 	"workout": {
 		Name:    "workout",
 		Aliases: []string{"w"},
-		Usage:   "workout list | workout add <name> | workout select <id|name>",
-		Summary: "list, add, or select workouts in the active program",
+		Usage:   "workout list | workout add <name> | workout select <id|name> | workout edit <name> | workout delete <id|name>",
+		Summary: "list, add, select, edit, or delete workouts in the active program",
 	},
 	"exercise": {
 		Name:    "exercise",
 		Aliases: []string{"ex"},
-		Usage:   "exercise list | exercise add <name> [sets] [reps] | exercise select <id|name> | exercise set <sets> <reps>",
-		Summary: "list, add, select, or update exercises in the active workout",
+		Usage:   "exercise list | exercise add <name> [sets] [reps] | exercise select <id|name> | exercise edit <name> [sets] [reps] | exercise delete <id|name> | exercise set <sets> <reps>",
+		Summary: "list, add, select, edit, or delete exercises in the active workout",
 	},
 	"log": {
 		Name:    "log",
 		Aliases: []string{"l"},
-		Usage:   "log start | log add [exercise] <sets> <reps> | log add [exercise] <reps/reps> | log finish [notes] | log current",
+		Usage:   "log start | log add [exercise] <sets> <reps> | log edit <entry-id> <sets> <reps> | log delete <entry-id> | log finish [notes] | log current",
 		Summary: "record the active workout session",
 	},
 	"history": {
@@ -64,6 +64,12 @@ var Registry = map[string]Spec{
 		Aliases: []string{"hist"},
 		Usage:   "history list [limit] | history show <session-id>",
 		Summary: "browse saved workout sessions",
+	},
+	"template": {
+		Name:    "template",
+		Aliases: []string{"tmpl"},
+		Usage:   "template list | template show <name|path> | template import <name|path> | template workout <template> <workout> | template export [program] [path] | template validate [name|path]",
+		Summary: "browse, import, export, and validate templates",
 	},
 }
 
@@ -77,7 +83,8 @@ var AliasToCanonical = map[string]string{
 	"ex":   "exercise",
 	"l":    "log",
 	"hist": "history",
+	"tmpl": "template",
 	"~":    "home",
 }
 
-var CommandsOrder = []string{"help", "home", "program", "workout", "exercise", "log", "history", "quit"}
+var CommandsOrder = []string{"help", "home", "program", "workout", "exercise", "log", "history", "template", "quit"}

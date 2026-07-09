@@ -1,0 +1,34 @@
+{
+  "name": "Push Pull Legs",
+  "description": "A simple hypertrophy split with push, pull, and legs days.",
+  "version": 1,
+  "workouts": [
+    {
+      "name": "Push",
+      "exercises": [
+        { "name": "Bench Press", "sets": 3, "reps": 8 },
+        { "name": "Overhead Press", "sets": 3, "reps": 8 },
+        { "name": "Incline Dumbbell Press", "sets": 3, "reps": 10 },
+        { "name": "Triceps Pushdown", "sets": 3, "reps": 12 }
+      ]
+    },
+    {
+      "name": "Pull",
+      "exercises": [
+        { "name": "Deadlift", "sets": 3, "reps": 5 },
+        { "name": "Barbell Row", "sets": 3, "reps": 8 },
+        { "name": "Lat Pulldown", "sets": 3, "reps": 10 },
+        { "name": "Barbell Curl", "sets": 3, "reps": 12 }
+      ]
+    },
+    {
+      "name": "Legs",
+      "exercises": [
+        { "name": "Back Squat", "sets": 3, "reps": 8 },
+        { "name": "Romanian Deadlift", "sets": 3, "reps": 10 },
+        { "name": "Leg Press", "sets": 3, "reps": 12 },
+        { "name": "Standing Calf Raise", "sets": 4, "reps": 12 }
+      ]
+    }
+  ]
+}

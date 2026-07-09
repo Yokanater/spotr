@@ -2,6 +2,7 @@ package screens
 
 import (
 	"ruffnut/ui/theme"
+	"strings"
 
 	"charm.land/lipgloss/v2"
 )
@@ -36,12 +37,24 @@ func HomeView(styles theme.Styles) string {
 }
 
 func RenderHeader(styles theme.Styles, active string) string {
-	_ = active
 	brand := styles.Brand.Render("spotr")
-	nav := "home   training   logs   help"
+	gap := "   "
 	if styles.Header.GetWidth() < 72 {
-		nav = "home training logs help"
+		gap = " "
 	}
+	nav := renderNav(styles, active, gap, []string{"home", "training", "templates", "logs", "help"})
 
-	return styles.Header.Align(lipgloss.Center).Render(lipgloss.JoinHorizontal(lipgloss.Top, brand, "    ", styles.Nav.Render(nav)))
+	return styles.Header.Align(lipgloss.Center).Render(lipgloss.JoinHorizontal(lipgloss.Top, brand, "    ", nav))
+}
+
+func renderNav(styles theme.Styles, active string, gap string, items []string) string {
+	rendered := make([]string, 0, len(items))
+	for _, item := range items {
+		if item == active {
+			rendered = append(rendered, styles.Brand.Render(item))
+			continue
+		}
+		rendered = append(rendered, styles.Nav.Render(item))
+	}
+	return strings.Join(rendered, gap)
 }

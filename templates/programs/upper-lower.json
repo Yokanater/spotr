@@ -1,0 +1,25 @@
+{
+  "name": "Upper Lower",
+  "description": "Four-day upper/lower split for balanced strength and hypertrophy.",
+  "version": 1,
+  "workouts": [
+    {
+      "name": "Upper",
+      "exercises": [
+        { "name": "Bench Press", "sets": 3, "reps": 6 },
+        { "name": "Barbell Row", "sets": 3, "reps": 8 },
+        { "name": "Overhead Press", "sets": 3, "reps": 8 },
+        { "name": "Lat Pulldown", "sets": 3, "reps": 10 }
+      ]
+    },
+    {
+      "name": "Lower",
+      "exercises": [
+        { "name": "Back Squat", "sets": 3, "reps": 6 },
+        { "name": "Romanian Deadlift", "sets": 3, "reps": 8 },
+        { "name": "Walking Lunge", "sets": 3, "reps": 10 },
+        { "name": "Seated Calf Raise", "sets": 4, "reps": 12 }
+      ]
+    }
+  ]
+}

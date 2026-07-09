@@ -76,6 +76,15 @@ func TestProgramViewShowsProgressivePanels(t *testing.T) {
 	}
 }
 
+func TestProgramViewEmptyProgramsOffersTemplates(t *testing.T) {
+	styles := theme.NewStyles(theme.Default(), 88, 30)
+	view := ProgramView(styles, nil, nil, nil, data.Program{}, data.Workout{}, data.Exercise{}, 0, 0, 0)
+
+	if !strings.Contains(view, "press a to add program or t templates") {
+		t.Fatalf("ProgramView() did not offer templates from empty state; view:\n%s", view)
+	}
+}
+
 func TestProgramViewDoesNotRenderActionFooter(t *testing.T) {
 	styles := theme.NewStyles(theme.Default(), 100, 30)
 	view := ProgramView(

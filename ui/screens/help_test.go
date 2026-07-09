@@ -19,10 +19,20 @@ func TestHelpViewIncludesCommandUsage(t *testing.T) {
 		"log start | log add [exercise] <sets> <reps>",
 		"log finish",
 		"log current",
+		"template list | template show <name|path>",
 	} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("HelpView() did not include %q; view:\n%s", want, view)
 		}
+	}
+}
+
+func TestHelpViewIncludesTemplateKey(t *testing.T) {
+	styles := theme.NewStyles(theme.Default(), 100, 30)
+	view := HelpView(styles)
+
+	if !strings.Contains(view, "browse templates") {
+		t.Fatalf("HelpView() did not include template key; view:\n%s", view)
 	}
 }
 
