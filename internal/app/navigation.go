@@ -1,6 +1,6 @@
 package app
 
-import "ruffnut/data"
+import "spotr/data"
 
 func (m *model) moveCursor(delta int) {
 	if m.screen == screenTemplates {

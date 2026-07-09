@@ -3,8 +3,8 @@ package app
 import (
 	"os"
 	"path/filepath"
-	"ruffnut/data"
-	"ruffnut/store"
+	"spotr/data"
+	"spotr/store"
 	"strings"
 	"testing"
 
@@ -192,7 +192,7 @@ func TestValidateProgramTemplateDirRejectsFilenameMismatch(t *testing.T) {
 }
 
 func TestCreateAndExportProgramTemplate(t *testing.T) {
-	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
 	if err != nil {
 		t.Fatalf("NewSQLite() error = %v", err)
 	}
@@ -272,7 +272,7 @@ func TestOpenTemplatesHandlesMissingDirectory(t *testing.T) {
 func TestTemplateCommandImportAndExport(t *testing.T) {
 	t.Chdir(filepath.Join("..", ".."))
 
-	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
 	if err != nil {
 		t.Fatalf("NewSQLite() error = %v", err)
 	}
@@ -317,7 +317,7 @@ func TestTemplateCommandImportAndExport(t *testing.T) {
 func TestTemplateWorkoutCommandImportsWorkoutIntoActiveProgram(t *testing.T) {
 	t.Chdir(filepath.Join("..", ".."))
 
-	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
 	if err != nil {
 		t.Fatalf("NewSQLite() error = %v", err)
 	}
@@ -361,7 +361,7 @@ func TestTemplateWorkoutCommandImportsWorkoutIntoActiveProgram(t *testing.T) {
 func TestTemplateListCommandOpensTemplateBrowser(t *testing.T) {
 	t.Chdir(filepath.Join("..", ".."))
 
-	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
 	if err != nil {
 		t.Fatalf("NewSQLite() error = %v", err)
 	}
@@ -384,7 +384,7 @@ func TestTemplateListCommandOpensTemplateBrowser(t *testing.T) {
 func TestTemplateBrowserImportsSelectedTemplate(t *testing.T) {
 	t.Chdir(filepath.Join("..", ".."))
 
-	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
 	if err != nil {
 		t.Fatalf("NewSQLite() error = %v", err)
 	}
@@ -414,7 +414,7 @@ func TestTemplateBrowserImportsSelectedTemplate(t *testing.T) {
 }
 
 func TestTemplateImportSelectsExistingProgram(t *testing.T) {
-	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
 	if err != nil {
 		t.Fatalf("NewSQLite() error = %v", err)
 	}

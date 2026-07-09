@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 	"path/filepath"
-	"ruffnut/data"
+	"spotr/data"
 	"strings"
 )
 

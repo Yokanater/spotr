@@ -3,7 +3,7 @@ package app
 import (
 	tea "charm.land/bubbletea/v2"
 	"fmt"
-	"ruffnut/commands"
+	"spotr/commands"
 )
 
 func (m model) runCommandLine(line string) (tea.Model, tea.Cmd) {

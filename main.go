@@ -3,12 +3,12 @@ package main
 import (
 	"fmt"
 	"os"
-	"ruffnut/internal/app"
-	"ruffnut/store"
+	"spotr/internal/app"
+	"spotr/store"
 )
 
 func main() {
-	st, err := store.NewSQLite("ruffnut.db")
+	st, err := store.NewSQLite("spotr.db")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "spotr: open db: %v\n", err)
 		os.Exit(1)

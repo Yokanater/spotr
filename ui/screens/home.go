@@ -1,7 +1,7 @@
 package screens
 
 import (
-	"ruffnut/ui/theme"
+	"spotr/ui/theme"
 	"strings"
 
 	"charm.land/lipgloss/v2"

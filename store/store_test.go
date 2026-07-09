@@ -6,13 +6,13 @@ import (
 	"strings"
 	"testing"
 
-	"ruffnut/data"
+	"spotr/data"
 
 	_ "modernc.org/sqlite"
 )
 
 func TestNewSQLiteMigratesLegacyExerciseColumns(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "ruffnut.db")
+	path := filepath.Join(t.TempDir(), "spotr.db")
 	db := openLegacyDB(t, path)
 	execSQL(t, db, `INSERT INTO programs (name, created_at) VALUES ('ppl', '2026-06-30T00:00:00Z')`)
 	execSQL(t, db, `INSERT INTO workouts (program_id, name, created_at) VALUES (1, 'push', '2026-06-30T00:00:00Z')`)
@@ -37,7 +37,7 @@ func TestNewSQLiteMigratesLegacyExerciseColumns(t *testing.T) {
 }
 
 func TestNewSQLiteMigratesLegacyWorkoutUniqueConstraint(t *testing.T) {
-	path := filepath.Join(t.TempDir(), "ruffnut.db")
+	path := filepath.Join(t.TempDir(), "spotr.db")
 	db := openLegacyDB(t, path)
 	closeDB(t, db)
 
@@ -63,7 +63,7 @@ func TestNewSQLiteMigratesLegacyWorkoutUniqueConstraint(t *testing.T) {
 }
 
 func TestGymSessionLifecycle(t *testing.T) {
-	st, err := NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	st, err := NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
 	if err != nil {
 		t.Fatalf("NewSQLite() error = %v", err)
 	}
@@ -192,7 +192,7 @@ func TestGymSessionLifecycle(t *testing.T) {
 }
 
 func TestUpdateAndDeleteProgram(t *testing.T) {
-	st, err := NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	st, err := NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
 	if err != nil {
 		t.Fatalf("NewSQLite() error = %v", err)
 	}
@@ -256,7 +256,7 @@ func TestUpdateAndDeleteProgram(t *testing.T) {
 }
 
 func TestUpdateAndDeleteExercise(t *testing.T) {
-	st, err := NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	st, err := NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
 	if err != nil {
 		t.Fatalf("NewSQLite() error = %v", err)
 	}
@@ -320,7 +320,7 @@ func TestUpdateAndDeleteExercise(t *testing.T) {
 }
 
 func TestUpdateAndDeleteWorkout(t *testing.T) {
-	st, err := NewSQLite(filepath.Join(t.TempDir(), "ruffnut.db"))
+	st, err := NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
 	if err != nil {
 		t.Fatalf("NewSQLite() error = %v", err)
 	}

@@ -2,8 +2,8 @@ package store
 
 import (
 	"database/sql"
-	"ruffnut/data"
-	"ruffnut/utils"
+	"spotr/data"
+	"spotr/utils"
 	"time"
 )
 

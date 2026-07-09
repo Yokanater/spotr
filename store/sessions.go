@@ -3,7 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
-	"ruffnut/data"
+	"spotr/data"
 	"time"
 )
 

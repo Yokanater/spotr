@@ -1,10 +1,10 @@
-# ruffnut templates
+# spotr templates
 
-Program templates are JSON files that can be imported into ruffnut.
+Program templates are JSON files that can be imported into spotr.
 You can import a whole program template, or import one workout from a template
 into the active program.
 
-By default, ruffnut reads templates from `templates/programs/`. Set
+By default, spotr reads templates from `templates/programs/`. Set
 `SPOTR_TEMPLATE_DIR` to use a local template directory outside the repo.
 
 ## Add a Template

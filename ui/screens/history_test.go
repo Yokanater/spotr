@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"ruffnut/data"
-	"ruffnut/ui/theme"
+	"spotr/data"
+	"spotr/ui/theme"
 )
 
 func TestHistoryViewShowsSessionEntries(t *testing.T) {

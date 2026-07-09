@@ -3,7 +3,7 @@ package app
 import (
 	"database/sql"
 	"fmt"
-	"ruffnut/data"
+	"spotr/data"
 	"strconv"
 	"strings"
 )

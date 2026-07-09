@@ -2,8 +2,8 @@ package screens
 
 import (
 	"fmt"
-	"ruffnut/data"
-	"ruffnut/ui/theme"
+	"spotr/data"
+	"spotr/ui/theme"
 	"sort"
 	"strings"
 

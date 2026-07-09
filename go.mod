@@ -1,4 +1,4 @@
-module ruffnut
+module spotr
 
 go 1.26.2
 

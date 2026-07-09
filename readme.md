@@ -1,4 +1,4 @@
-# ruffnut
+# spotr
 
 Workout logging for nerds on the terminal
 
@@ -8,7 +8,7 @@ Workout logging for nerds on the terminal
 go run .
 ```
 
-ruffnut writes to `ruffnut.db` in the current directory.
+spotr writes to `spotr.db` in the current directory.
 
 ## Test
 

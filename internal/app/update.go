@@ -2,7 +2,7 @@ package app
 
 import (
 	tea "charm.land/bubbletea/v2"
-	"ruffnut/ui/theme"
+	"spotr/ui/theme"
 	"strings"
 )
 

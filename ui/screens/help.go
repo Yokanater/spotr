@@ -3,8 +3,8 @@ package screens
 import (
 	"strings"
 
-	"ruffnut/commands"
-	"ruffnut/ui/theme"
+	"spotr/commands"
+	"spotr/ui/theme"
 
 	"charm.land/lipgloss/v2"
 )

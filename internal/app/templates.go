@@ -7,8 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
-	"ruffnut/data"
-	"ruffnut/ui/screens"
+	"spotr/data"
+	"spotr/ui/screens"
 	"sort"
 	"strings"
 )

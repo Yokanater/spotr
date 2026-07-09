@@ -4,11 +4,11 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
-	"ruffnut/data"
-	"ruffnut/store"
-	"ruffnut/ui/screens"
-	"ruffnut/ui/theme"
-	"ruffnut/ui/utils"
+	"spotr/data"
+	"spotr/store"
+	"spotr/ui/screens"
+	"spotr/ui/theme"
+	"spotr/ui/utils"
 )
 
 type mode string

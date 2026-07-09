@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/yashtri/ruffnut/templates/schema/program-template.schema.json",
-  "title": "ruffnut program template",
+  "$id": "https://github.com/yashtri/spotr/templates/schema/program-template.schema.json",
+  "title": "spotr program template",
   "type": "object",
   "additionalProperties": false,
   "required": ["name", "version", "workouts"],

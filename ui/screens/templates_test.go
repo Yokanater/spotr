@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"ruffnut/ui/theme"
+	"spotr/ui/theme"
 
 	"charm.land/lipgloss/v2"
 )

@@ -2,7 +2,7 @@ package app
 
 import (
 	"charm.land/lipgloss/v2"
-	"ruffnut/ui/theme"
+	"spotr/ui/theme"
 	"strings"
 )
 

@@ -2,7 +2,7 @@ package app
 
 import (
 	"fmt"
-	"ruffnut/data"
+	"spotr/data"
 	"strings"
 )
 
