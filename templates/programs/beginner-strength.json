@@ -1,0 +1,25 @@
+{
+  "name": "Beginner Strength",
+  "description": "Simple A/B strength template for learning the main lifts.",
+  "version": 1,
+  "workouts": [
+    {
+      "name": "Strength A",
+      "exercises": [
+        { "name": "Back Squat", "sets": 3, "reps": 5 },
+        { "name": "Bench Press", "sets": 3, "reps": 5 },
+        { "name": "Barbell Row", "sets": 3, "reps": 5 },
+        { "name": "Hanging Knee Raise", "sets": 3, "reps": 10 }
+      ]
+    },
+    {
+      "name": "Strength B",
+      "exercises": [
+        { "name": "Back Squat", "sets": 3, "reps": 5 },
+        { "name": "Overhead Press", "sets": 3, "reps": 5 },
+        { "name": "Deadlift", "sets": 1, "reps": 5 },
+        { "name": "Assisted Pull Up", "sets": 3, "reps": 8 }
+      ]
+    }
+  ]
+}

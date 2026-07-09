@@ -1,0 +1,34 @@
+{
+  "name": "Full Body",
+  "description": "Three-day full-body plan built around simple compound lifts.",
+  "version": 1,
+  "workouts": [
+    {
+      "name": "Full Body A",
+      "exercises": [
+        { "name": "Back Squat", "sets": 3, "reps": 5 },
+        { "name": "Bench Press", "sets": 3, "reps": 5 },
+        { "name": "Barbell Row", "sets": 3, "reps": 8 },
+        { "name": "Plank", "sets": 3, "reps": 30 }
+      ]
+    },
+    {
+      "name": "Full Body B",
+      "exercises": [
+        { "name": "Deadlift", "sets": 3, "reps": 5 },
+        { "name": "Overhead Press", "sets": 3, "reps": 5 },
+        { "name": "Lat Pulldown", "sets": 3, "reps": 10 },
+        { "name": "Walking Lunge", "sets": 3, "reps": 10 }
+      ]
+    },
+    {
+      "name": "Full Body C",
+      "exercises": [
+        { "name": "Front Squat", "sets": 3, "reps": 6 },
+        { "name": "Incline Dumbbell Press", "sets": 3, "reps": 8 },
+        { "name": "Romanian Deadlift", "sets": 3, "reps": 10 },
+        { "name": "Cable Row", "sets": 3, "reps": 10 }
+      ]
+    }
+  ]
+}

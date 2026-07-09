@@ -1,0 +1,25 @@
+{
+  "name": "Home Dumbbell",
+  "description": "Minimal-equipment template for training at home with dumbbells.",
+  "version": 1,
+  "workouts": [
+    {
+      "name": "Dumbbell Push Pull",
+      "exercises": [
+        { "name": "Dumbbell Floor Press", "sets": 3, "reps": 10 },
+        { "name": "One Arm Dumbbell Row", "sets": 3, "reps": 10 },
+        { "name": "Dumbbell Shoulder Press", "sets": 3, "reps": 10 },
+        { "name": "Dumbbell Curl", "sets": 3, "reps": 12 }
+      ]
+    },
+    {
+      "name": "Dumbbell Legs",
+      "exercises": [
+        { "name": "Goblet Squat", "sets": 4, "reps": 10 },
+        { "name": "Dumbbell Romanian Deadlift", "sets": 3, "reps": 10 },
+        { "name": "Reverse Lunge", "sets": 3, "reps": 10 },
+        { "name": "Standing Calf Raise", "sets": 4, "reps": 15 }
+      ]
+    }
+  ]
+}
