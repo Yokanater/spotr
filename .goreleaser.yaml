@@ -59,6 +59,13 @@ homebrew_casks:
     directory: Casks
     homepage: https://github.com/Yokanater/spotr
     description: Workout logging for nerds on the terminal
+    hooks:
+      post:
+        install: |
+          if OS.mac?
+            system_command "/usr/bin/xattr",
+                           args: ["-dr", "com.apple.quarantine", "#{staged_path}/spotr"]
+          end
     caveats: |
       spotr stores spotr.db in the directory where you run it.
 

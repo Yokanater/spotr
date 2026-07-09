@@ -2,6 +2,40 @@
 
 Workout logging for nerds on the terminal
 
+## Install
+
+### Homebrew
+
+```bash
+brew tap Yokanater/tap
+brew install --cask spotr
+```
+
+### Binaries
+
+Download the archive for your system from the latest GitHub release:
+
+- macOS Apple Silicon: `spotr_Darwin_arm64.tar.gz`
+- macOS Intel: `spotr_Darwin_x86_64.tar.gz`
+- Linux x86_64: `spotr_Linux_x86_64.tar.gz`
+- Linux ARM64: `spotr_Linux_arm64.tar.gz`
+- Windows x86_64: `spotr_Windows_x86_64.zip`
+- Windows ARM64: `spotr_Windows_arm64.zip`
+
+macOS/Linux:
+
+```bash
+tar -xzf spotr_*.tar.gz
+./spotr
+```
+
+Windows PowerShell:
+
+```powershell
+Expand-Archive .\spotr_Windows_x86_64.zip
+.\spotr_Windows_x86_64\spotr.exe
+```
+
 ## Run
 
 ```bash
