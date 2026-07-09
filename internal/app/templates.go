@@ -252,31 +252,46 @@ func (m *model) importProgramTemplate(tmpl programTemplate) (bool, error) {
 	return true, nil
 }
 
-func (m *model) importWorkoutTemplate(tmpl programTemplate, workoutName string) (data.Workout, error) {
+func (m *model) importWorkoutTemplate(tmpl programTemplate, workoutName string) (data.Workout, bool, error) {
 	if m.activeProgram.ProgramId == 0 {
-		return data.Workout{}, fmt.Errorf("select a program first: program select <id|name>")
+		return data.Workout{}, false, fmt.Errorf("select a program first: program select <id|name>")
 	}
 	workoutTmpl, err := findWorkoutTemplate(tmpl, workoutName)
 	if err != nil {
-		return data.Workout{}, err
+		return data.Workout{}, false, err
+	}
+	if workout, err := m.store.SelectWorkout(workoutTmpl.Name, m.activeProgram); err == nil {
+		if err := m.selectImportedWorkout(workout); err != nil {
+			return data.Workout{}, false, err
+		}
+		return workout, false, nil
+	} else if err != sql.ErrNoRows {
+		return data.Workout{}, false, err
 	}
 	if err := m.store.CreateWorkout(workoutTmpl.Name, m.activeProgram); err != nil {
-		return data.Workout{}, err
+		return data.Workout{}, false, err
 	}
 	workout, err := m.store.SelectWorkout(workoutTmpl.Name, m.activeProgram)
 	if err != nil {
-		return data.Workout{}, err
+		return data.Workout{}, false, err
 	}
 	for _, exerciseTmpl := range workoutTmpl.Exercises {
 		if err := m.store.CreateExercise(exerciseTmpl.Name, exerciseTmpl.Sets, exerciseTmpl.Reps, workout); err != nil {
-			return data.Workout{}, err
+			return data.Workout{}, false, err
 		}
 	}
+	if err := m.selectImportedWorkout(workout); err != nil {
+		return data.Workout{}, false, err
+	}
+	return workout, true, nil
+}
+
+func (m *model) selectImportedWorkout(workout data.Workout) error {
 	m.activeWorkout = workout
 	m.activeExercise = data.Exercise{}
 	m.exerciseCursor = 0
 	if err := m.loadWorkouts(m.activeProgram); err != nil {
-		return data.Workout{}, err
+		return err
 	}
 	for i := range m.workouts {
 		if m.workouts[i].WorkoutId == workout.WorkoutId {
@@ -285,9 +300,9 @@ func (m *model) importWorkoutTemplate(tmpl programTemplate, workoutName string) 
 		}
 	}
 	if err := m.loadExercises(workout); err != nil {
-		return data.Workout{}, err
+		return err
 	}
-	return workout, nil
+	return nil
 }
 
 func findWorkoutTemplate(tmpl programTemplate, workoutName string) (workoutTemplate, error) {

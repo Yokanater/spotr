@@ -61,13 +61,17 @@ func (m *model) handleTemplate(args []string) {
 			m.status = err.Error()
 			return
 		}
-		workout, err := m.importWorkoutTemplate(file.Template, workoutName)
+		workout, created, err := m.importWorkoutTemplate(file.Template, workoutName)
 		if err != nil {
 			m.status = err.Error()
 			return
 		}
 		m.screen = screenProgram
-		m.status = "Created workout from template " + workout.Name
+		if created {
+			m.status = "Created workout from template " + workout.Name
+			return
+		}
+		m.status = "Selected existing workout " + workout.Name
 
 	case "export":
 		program, output, ok := m.templateExportArgs(args[1:])

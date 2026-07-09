@@ -343,6 +343,19 @@ func TestTemplateWorkoutCommandImportsWorkoutIntoActiveProgram(t *testing.T) {
 	if len(exercises) != 4 || exercises[0].Name == "" {
 		t.Fatalf("exercises = %+v; want imported template exercises", exercises)
 	}
+
+	updated, _ = m.runCommandLine("template workout Push Pull Legs Push")
+	m = updated.(model)
+	if m.status != "Selected existing workout Push" {
+		t.Fatalf("status after duplicate import = %q; want selected existing status", m.status)
+	}
+	workouts, err := st.ListWorkouts(m.activeProgram)
+	if err != nil {
+		t.Fatalf("ListWorkouts() error = %v", err)
+	}
+	if len(workouts) != 1 {
+		t.Fatalf("workouts = %+v; want one workout after duplicate import", workouts)
+	}
 }
 
 func TestTemplateListCommandOpensTemplateBrowser(t *testing.T) {
