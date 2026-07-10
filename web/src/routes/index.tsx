@@ -10,8 +10,8 @@ function Home() {
           spotr<span className="header-cursor" aria-hidden="true" />
         </a>
         <nav className="nav-links" aria-label="Primary navigation">
-          <a href="https://github.com/spotr" target="_blank" rel="noreferrer">github ↗</a>
-          <a href="https://github.com/Yokanater" target="_blank" rel="noreferrer">made by yokanater</a>
+          <a href="https://github.com/Yokanater/spotr" target="_blank" rel="noreferrer">github ↗</a>
+          <a href="https://github.com/Yokanater/spotr" target="_blank" rel="noreferrer">made by yokanater</a>
         </nav>
       </header>
 
@@ -28,7 +28,7 @@ function Home() {
           </div>
 
           <div className="actions">
-            <a className="primary-action" href="https://github.com/spotr" target="_blank" rel="noreferrer">
+            <a className="primary-action" href="https://github.com/Yokanater/spotr" target="_blank" rel="noreferrer">
               get spotr <span>↗</span>
             </a>
             <span className="platforms">macOS · Linux · Windows</span>

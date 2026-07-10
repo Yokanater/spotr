@@ -13,13 +13,22 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'spotr — workout logging for nerds',
+        title: 'spotr',
+      },
+      {
+        name: 'description',
+        content: 'lift logging for nerds',
       },
     ],
     links: [
       {
         rel: 'stylesheet',
         href: appCss,
+      },
+      {
+        rel: 'icon',
+        type: 'image/svg+xml',
+        href: '/favicon.svg',
       },
     ],
   }),
