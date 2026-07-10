@@ -39,10 +39,32 @@ func TestHistoryViewShowsExerciseHistory(t *testing.T) {
 		[]data.GymSessionEntry{{SessionId: 7, Exercise: "bench", Workout: "upper body", StartedAt: "2026-07-06T10:00:00Z", Sets: 2, Reps: 4, RepsDetail: "6/4", Weight: 135}},
 	)
 
-	for _, want := range []string{"movement history", "progress", "best 135.0", "07-06 135.0 2x6/4", "#7", "upper body", "2x6/4"} {
+	for _, want := range []string{"movement history", "estimated 1RM", "best 162.0", "volume latest 1350", "07-06 load 135.0 2x6/4", "#7", "upper body", "2x6/4"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("HistoryView() missing %q; view:\n%s", want, view)
 		}
+	}
+}
+
+func TestProgressCalculationsUseEffortAndVolume(t *testing.T) {
+	entry := data.GymSessionEntry{Weight: 135, Sets: 2, Reps: 4, RepsDetail: "6/4"}
+	if got := estimatedOneRepMax(entry); got != 162 {
+		t.Fatalf("estimatedOneRepMax() = %.1f; want 162.0", got)
+	}
+	if got := exerciseVolume(entry); got != 1350 {
+		t.Fatalf("exerciseVolume() = %.1f; want 1350.0", got)
+	}
+}
+
+func TestChartPositionsReflectElapsedTime(t *testing.T) {
+	points := []data.GymSessionEntry{
+		{StartedAt: "2026-07-01T10:00:00Z"},
+		{StartedAt: "2026-07-02T10:00:00Z"},
+		{StartedAt: "2026-07-10T10:00:00Z"},
+	}
+	positions := chartPositions(points, 28)
+	if positions[0] != 0 || positions[2] != 27 || positions[1] >= 10 {
+		t.Fatalf("chartPositions() = %v; want date-proportional spacing", positions)
 	}
 }
 

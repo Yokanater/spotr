@@ -74,7 +74,7 @@ func (m *model) openSelected() {
 			m.status = "no workouts in " + program.ProgramName + ". add the first workout"
 			return
 		}
-		m.status = "selected program " + program.ProgramName + ". " + m.normalHelp()
+		m.status = "Using program " + program.ProgramName
 	case screenWorkouts:
 		if len(m.workouts) == 0 {
 			m.status = "no workouts yet. press a to add one"
@@ -93,7 +93,7 @@ func (m *model) openSelected() {
 			m.status = "selected workout " + workout.Name + ". press a to add an exercise"
 			return
 		}
-		m.status = "selected workout " + workout.Name + ". " + m.normalHelp()
+		m.status = "Opened workout " + workout.Name
 	case screenExercises:
 		if len(m.exercises) == 0 {
 			m.status = "no exercises yet. press a to add one"
@@ -102,13 +102,13 @@ func (m *model) openSelected() {
 		m.exerciseCursor = clampIndex(m.exerciseCursor, len(m.exercises))
 		exercise := m.exercises[m.exerciseCursor]
 		m.activeExercise = exercise
-		m.status = "selected exercise " + exercise.Name + ". " + m.normalHelp()
+		m.status = "Selected " + exercise.Name
 	}
 }
 
 func (m *model) openSelectedHistory() {
 	if m.activeSession.SessionId != 0 {
-		m.status = helperMessage("e edit log", "d delete log", "b back to logs", ": command")
+		m.status = "Session details"
 		return
 	}
 	if m.historyEntries != nil {
@@ -133,7 +133,7 @@ func (m *model) openSelectedHistory() {
 		m.historyBackCursor = m.historyCursor
 		m.historyEntries = entries
 		m.historyCursor = 0
-		m.status = helperMessage("j/k scroll", "e edit", "d delete", "b back to logs")
+		m.status = "Session details"
 		return
 	}
 	if len(m.historySessions) == 0 {
@@ -151,7 +151,7 @@ func (m *model) openSelectedHistory() {
 	m.historyBackEntries = nil
 	m.activeSession = session
 	m.historyCursor = 0
-	m.status = helperMessage("j/k scroll", "e edit", "d delete", "b back to logs")
+	m.status = "Session details"
 }
 
 func clampIndex(current int, length int) int {
@@ -175,13 +175,13 @@ func (m *model) goBack() {
 		return
 	}
 	if m.screen == screenHelp {
-		m.screen = screenProgram
-		m.status = "back"
+		m.screen = m.returnDestination(m.helpReturnScreen)
+		m.status = ""
 		return
 	}
 	if m.screen == screenTemplates {
-		m.screen = screenProgram
-		m.status = m.normalHelp()
+		m.screen = m.returnDestination(m.templateReturnScreen)
+		m.status = ""
 		return
 	}
 	if m.screen == screenHistory {
@@ -191,24 +191,24 @@ func (m *model) goBack() {
 				m.historyEntries = m.historyBackEntries
 				m.historyBackEntries = nil
 				m.historyCursor = clampIndex(m.historyBackCursor, len(m.historyEntries))
-				m.status = helperMessage("j/k scroll", "enter open", "e edit", "d delete", "b training")
+				m.status = "Back to movement history"
 				return
 			}
 			if m.historySessions == nil {
 				m.activeSession = data.GymSession{}
 				m.historyEntries = nil
 				m.screen = screenProgram
-				m.status = m.normalHelp()
+				m.status = "Back to workouts"
 				return
 			}
 			m.activeSession = data.GymSession{}
 			m.historyEntries = nil
 			m.historyCursor = clampIndex(m.historyCursor, len(m.historySessions))
-			m.status = helperMessage("j/k scroll", "enter open", "b training")
+			m.status = "Back to recent sessions"
 			return
 		}
 		m.screen = screenProgram
-		m.status = m.normalHelp()
+		m.status = "Back to workouts"
 		return
 	}
 	switch {
@@ -228,6 +228,18 @@ func (m *model) goBack() {
 		m.goHome()
 	}
 	m.screen = screenProgram
+}
+
+func (m model) returnDestination(destination screen) screen {
+	switch destination {
+	case screenHome, screenProgram, screenPrograms, screenHistory, screenTemplates:
+		return destination
+	default:
+		if m.activeProgram.ProgramId != 0 {
+			return screenProgram
+		}
+		return screenHome
+	}
 }
 
 func (m *model) goHome() {

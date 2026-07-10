@@ -144,12 +144,15 @@ type programTemplateFile struct {
 }
 
 func (m *model) openTemplates() {
+	if m.screen != screenTemplates {
+		m.templateReturnScreen = m.screen
+	}
 	if err := m.loadTemplates(); err != nil {
 		m.status = err.Error()
 		return
 	}
 	m.screen = screenTemplates
-	m.status = m.normalHelp()
+	m.status = "Choose a template to import"
 }
 
 func (m *model) loadTemplates() error {

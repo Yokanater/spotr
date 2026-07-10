@@ -107,11 +107,12 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	case ":":
 		m.mode = modeCmd
+		m.input.Focus()
 		m.inputPurpose = inputNone
 		m.input.SetValue("")
 		m.input.Placeholder = "program list"
 		m.input.Prompt = "spotr $ "
-		m.status = helperMessage("type a command", "enter run", "esc cancel")
+		m.status = "Type a command"
 	case "a":
 		m.startAdd()
 	case "s":
@@ -141,8 +142,9 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "enter":
 		m.openSelected()
 	case "?":
+		m.helpReturnScreen = m.screen
 		m.screen = screenHelp
-		m.status = helperMessage("b back", ": command")
+		m.status = "All shortcuts"
 	case "home":
 		m.goHome()
 	case "b", "esc":
@@ -150,7 +152,7 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "q", "ctrl+c":
 		m.requestQuit()
 	default:
-		m.status = m.normalHelp()
+		m.status = ""
 	}
 	return m, cmd
 }
@@ -173,7 +175,7 @@ func (m model) handleQuitKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, tea.Quit
 	case "n", "N", "esc", "q":
 		m.mode = modeNormal
-		m.status = m.normalHelp()
+		m.status = "Quit cancelled"
 		return m, cmd
 	default:
 		m.status = quitConfirmStatus()
@@ -189,7 +191,7 @@ func (m model) handleDeleteKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		return m, cmd
 	case "n", "N", "esc", "q":
 		m.clearDeleteState()
-		m.status = "delete cancelled"
+		m.status = "Delete cancelled"
 		return m, cmd
 	default:
 		m.status = m.deleteConfirmStatus()
@@ -206,5 +208,5 @@ func (m *model) requestQuit() {
 }
 
 func quitConfirmStatus() string {
-	return helperMessage("quit spotr?", "y confirm", "n cancel")
+	return "Quit Spotr?"
 }

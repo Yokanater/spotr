@@ -1,6 +1,7 @@
 package app
 
 import (
+	"charm.land/bubbles/v2/textinput"
 	"os"
 	"path/filepath"
 	"spotr/data"
@@ -86,7 +87,7 @@ func TestNormalHelpOffersTemplatesWhenNoProgramsExist(t *testing.T) {
 	m := model{screen: screenProgram}
 	got := m.normalHelp()
 
-	for _, want := range []string{"a new program", "t use template"} {
+	for _, want := range []string{"a add", "t templates"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("normalHelp() = %q; missing %q", got, want)
 		}
@@ -134,6 +135,7 @@ func TestProgramPickerActionsTargetPrograms(t *testing.T) {
 	m := model{
 		mode:          modeNormal,
 		screen:        screenPrograms,
+		input:         textinput.New(),
 		activeProgram: data.Program{ProgramId: 1, ProgramName: "Current"},
 		programs:      []data.Program{{ProgramId: 1, ProgramName: "Current"}},
 		workouts:      []data.Workout{{WorkoutId: 2, ProgramId: 1, Name: "Push"}},
@@ -235,10 +237,24 @@ func TestOpenSelectedProgramPickerActivatesProgram(t *testing.T) {
 	}
 }
 
+func TestHelpAndTemplatesReturnToTheirOrigin(t *testing.T) {
+	m := model{screen: screenHelp, helpReturnScreen: screenHome}
+	m.goBack()
+	if m.screen != screenHome {
+		t.Fatalf("help back screen = %q; want home", m.screen)
+	}
+
+	m = model{screen: screenTemplates, templateReturnScreen: screenPrograms}
+	m.goBack()
+	if m.screen != screenPrograms {
+		t.Fatalf("template back screen = %q; want programs", m.screen)
+	}
+}
+
 func TestQuitConfirmationUsesHelperStatus(t *testing.T) {
 	m := model{mode: modeNormal}
 	m.requestQuit()
-	if m.status != helperMessage("quit spotr?", "y confirm", "n cancel") {
+	if m.status != "Quit Spotr?" {
 		t.Fatalf("requestQuit() status = %q; want helper confirmation", m.status)
 	}
 }
@@ -369,8 +385,8 @@ func TestOpenTemplatesHandlesMissingDirectory(t *testing.T) {
 	if len(m.templateFiles) != 0 {
 		t.Fatalf("templateFiles = %+v; want none for missing directory", m.templateFiles)
 	}
-	if m.status != helperMessage("b back", ": command") {
-		t.Fatalf("status = %q; want empty template browser help", m.status)
+	if m.status != "Choose a template to import" {
+		t.Fatalf("status = %q; want template browser instruction", m.status)
 	}
 }
 
@@ -481,7 +497,7 @@ func TestTemplateListCommandOpensTemplateBrowser(t *testing.T) {
 	if len(m.templateFiles) == 0 {
 		t.Fatal("templateFiles empty; want bundled templates")
 	}
-	if m.status != helperMessage("↑/↓ choose", "enter import", "b back", "? all keys") {
+	if m.status != "Choose a template to import" {
 		t.Fatalf("status = %q; want template browser help", m.status)
 	}
 }

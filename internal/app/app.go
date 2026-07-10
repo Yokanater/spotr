@@ -60,48 +60,50 @@ const (
 )
 
 type model struct {
-	quitting           bool
-	maxH               int
-	maxW               int
-	appH               int
-	appW               int
-	termH              int
-	termW              int
-	theme              theme.Theme
-	screen             screen
-	mode               mode
-	inputPurpose       inputPurpose
-	styles             theme.Styles
-	input              textinput.Model
-	store              *store.Store
-	status             string
-	programCursor      int
-	workoutCursor      int
-	exerciseCursor     int
-	historyCursor      int
-	programs           []data.Program
-	workouts           []data.Workout
-	exercises          []data.Exercise
-	historySessions    []data.GymSession
-	historyEntries     []data.GymSessionEntry
-	historyBackEntries []data.GymSessionEntry
-	historyBackCursor  int
-	templateFiles      []programTemplateFile
-	templateCursor     int
-	activeSession      data.GymSession
-	historyTitle       string
-	activeProgram      data.Program
-	activeWorkout      data.Workout
-	activeExercise     data.Exercise
-	editingEntry       data.GymSessionEntry
-	editingProgram     data.Program
-	editingWorkout     data.Workout
-	editingExercise    data.Exercise
-	deletingEntry      data.GymSessionEntry
-	deletingProgram    data.Program
-	deletingWorkout    data.Workout
-	deletingExercise   data.Exercise
-	deleteTarget       deleteTarget
+	quitting             bool
+	maxH                 int
+	maxW                 int
+	appH                 int
+	appW                 int
+	termH                int
+	termW                int
+	theme                theme.Theme
+	screen               screen
+	mode                 mode
+	inputPurpose         inputPurpose
+	styles               theme.Styles
+	input                textinput.Model
+	store                *store.Store
+	status               string
+	programCursor        int
+	workoutCursor        int
+	exerciseCursor       int
+	historyCursor        int
+	programs             []data.Program
+	workouts             []data.Workout
+	exercises            []data.Exercise
+	historySessions      []data.GymSession
+	historyEntries       []data.GymSessionEntry
+	historyBackEntries   []data.GymSessionEntry
+	historyBackCursor    int
+	templateFiles        []programTemplateFile
+	templateCursor       int
+	activeSession        data.GymSession
+	historyTitle         string
+	activeProgram        data.Program
+	activeWorkout        data.Workout
+	activeExercise       data.Exercise
+	editingEntry         data.GymSessionEntry
+	editingProgram       data.Program
+	editingWorkout       data.Workout
+	editingExercise      data.Exercise
+	deletingEntry        data.GymSessionEntry
+	deletingProgram      data.Program
+	deletingWorkout      data.Workout
+	deletingExercise     data.Exercise
+	deleteTarget         deleteTarget
+	helpReturnScreen     screen
+	templateReturnScreen screen
 }
 
 func initialModel(st *store.Store) model {
@@ -111,7 +113,7 @@ func initialModel(st *store.Store) model {
 	ti.Prompt = ""
 	ti.SetWidth(t.InputMax)
 	ti.CharLimit = 128
-	ti.Focus()
+	ti.Blur()
 	m := model{
 		maxW:   utils.DefaultStruct.MaxW,
 		maxH:   utils.DefaultStruct.MaxH,
@@ -188,10 +190,9 @@ func (m model) View() tea.View {
 		return tea.NewView("bye bye")
 	}
 
-	rawInput := m.input.View()
-	input := m.styles.Input.Render(rawInput)
+	input := m.styles.Input.Render(m.input.View())
 	status := renderStatus(m.styles, m.status)
-	keyRail := renderStatus(m.styles, m.keyHelp())
+	keyRail := renderKeyRail(m.styles, m.keyHelp())
 	screenHeight := max(1, m.appH-lipgloss.Height(input)-lipgloss.Height(status)-lipgloss.Height(keyRail)-2)
 	screenStyles := theme.NewStyles(m.theme, m.appW, screenHeight)
 	screen := ""

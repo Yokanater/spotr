@@ -118,6 +118,12 @@ func (m *model) handleProgram(args []string) {
 			m.exercises = nil
 			m.workoutCursor = 0
 			m.exerciseCursor = 0
+			if len(m.programs) > 0 {
+				if err := m.restoreActiveProgram(); err != nil {
+					m.status = err.Error()
+					return
+				}
+			}
 		}
 		m.status = "Deleted program " + program.ProgramName
 

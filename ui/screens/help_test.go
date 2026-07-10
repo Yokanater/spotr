@@ -9,18 +9,11 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-func TestHelpViewIncludesCommandUsage(t *testing.T) {
+func TestHelpViewIncludesCommandGroups(t *testing.T) {
 	styles := theme.NewStyles(theme.Default(), 100, 30)
 	view := HelpView(styles)
 
-	for _, want := range []string{
-		"exercise list | exercise add <name>",
-		"exercise select <id|name>",
-		"log start | log add [exercise] <sets> <reps>",
-		"log finish",
-		"log current",
-		"template list | template show <name|path>",
-	} {
+	for _, want := range []string{":exercise", ":log", ":template", "record training"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("HelpView() did not include %q; view:\n%s", want, view)
 		}
@@ -31,7 +24,7 @@ func TestHelpViewIncludesTemplateKey(t *testing.T) {
 	styles := theme.NewStyles(theme.Default(), 100, 30)
 	view := HelpView(styles)
 
-	if !strings.Contains(view, "browse templates") {
+	if !strings.Contains(view, "templates") {
 		t.Fatalf("HelpView() did not include template key; view:\n%s", view)
 	}
 }

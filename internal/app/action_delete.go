@@ -145,6 +145,12 @@ func (m *model) confirmDeleteProgram() {
 		m.exercises = nil
 		m.workoutCursor = 0
 		m.exerciseCursor = 0
+		if len(m.programs) > 0 {
+			if err := m.restoreActiveProgram(); err != nil {
+				m.status = err.Error()
+				return
+			}
+		}
 	}
 	m.status = "Deleted program " + deleted.ProgramName
 }
@@ -209,15 +215,15 @@ func (m *model) confirmDeleteExercise() {
 func (m *model) deleteConfirmStatus() string {
 	switch m.deleteTarget {
 	case deleteLog:
-		return helperMessage("delete "+formatSessionEntry(m.deletingEntry)+"?", "y confirm", "n cancel")
+		return "Delete " + formatSessionEntry(m.deletingEntry) + "?"
 	case deleteProgram:
-		return helperMessage("delete program "+m.deletingProgram.ProgramName+"?", "y confirm", "n cancel")
+		return "Delete program " + m.deletingProgram.ProgramName + "?"
 	case deleteWorkout:
-		return helperMessage("delete workout "+m.deletingWorkout.Name+"?", "y confirm", "n cancel")
+		return "Delete workout " + m.deletingWorkout.Name + "?"
 	case deleteExercise:
-		return helperMessage("delete exercise "+m.deletingExercise.Name+"?", "y confirm", "n cancel")
+		return "Delete exercise " + m.deletingExercise.Name + "?"
 	default:
-		return helperMessage("delete selected item?", "y confirm", "n cancel")
+		return "Delete selected item?"
 	}
 }
 

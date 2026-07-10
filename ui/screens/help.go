@@ -17,7 +17,7 @@ type helpRow struct {
 func HelpView(styles theme.Styles) string {
 	contentW := max(20, styles.Help.GetWidth()-helpChrome(styles))
 	title := styles.ProgramTitle.Width(contentW).Render("help")
-	subtitle := styles.ProgramSubtitle.Width(contentW).Render("keys for normal mode, commands for command mode")
+	subtitle := styles.ProgramSubtitle.Width(contentW).Render("shortcuts and command groups")
 
 	keys := make([]helpRow, 0, len(commands.KeyBindings))
 	for _, binding := range commands.KeyBindings {
@@ -26,8 +26,7 @@ func HelpView(styles theme.Styles) string {
 
 	commandRows := make([]helpRow, 0, len(commands.CommandsOrder))
 	for _, name := range commands.CommandsOrder {
-		spec := commands.Registry[name]
-		commandRows = append(commandRows, helpRow{Label: spec.Usage, Text: commandSummary(spec)})
+		commandRows = append(commandRows, helpRow{Label: ":" + name, Text: commandGroupSummary(name)})
 	}
 
 	body := renderHelpBody(styles, contentW, keys, commandRows)
@@ -41,13 +40,38 @@ func HelpView(styles theme.Styles) string {
 	)
 }
 
+func commandGroupSummary(name string) string {
+	switch name {
+	case "help":
+		return "show this screen"
+	case "home":
+		return "go home"
+	case "program":
+		return "manage programs"
+	case "workout":
+		return "manage workouts"
+	case "exercise":
+		return "manage exercises"
+	case "log":
+		return "record training"
+	case "history":
+		return "browse sessions"
+	case "template":
+		return "manage templates"
+	case "quit":
+		return "exit spotr"
+	default:
+		return name
+	}
+}
+
 func renderHelpBody(styles theme.Styles, width int, keys []helpRow, commandRows []helpRow) string {
 	if width >= 76 {
 		return lipgloss.JoinVertical(
 			lipgloss.Left,
 			renderKeyGrid(styles, "keys", keys, width, 3),
 			"",
-			renderCommandSection(styles, "commands", commandRows, width),
+			renderKeyGrid(styles, "commands", commandRows, width, 3),
 		)
 	}
 
@@ -56,7 +80,7 @@ func renderHelpBody(styles theme.Styles, width int, keys []helpRow, commandRows 
 			lipgloss.Left,
 			renderKeyGrid(styles, "keys", keys, width, 2),
 			"",
-			renderCommandSection(styles, "commands", commandRows, width),
+			renderKeyGrid(styles, "commands", commandRows, width, 2),
 		)
 	}
 
@@ -64,7 +88,7 @@ func renderHelpBody(styles theme.Styles, width int, keys []helpRow, commandRows 
 		lipgloss.Left,
 		renderKeySection(styles, "keys", keys, width),
 		"",
-		renderCommandSection(styles, "commands", commandRows, width),
+		renderKeySection(styles, "commands", commandRows, width),
 	)
 }
 
@@ -122,20 +146,6 @@ func renderCompactKeySection(styles theme.Styles, title string, rows []helpRow, 
 	return lipgloss.NewStyle().Width(width).Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
 }
 
-func renderCommandSection(styles theme.Styles, title string, rows []helpRow, width int) string {
-	lines := []string{styles.SectionTitle.Width(width).Render(title)}
-	for i, row := range rows {
-		if i > 0 {
-			lines = append(lines, "")
-		}
-		lines = append(lines,
-			styles.HelpKey.Width(width).MaxWidth(width).Render(row.Label),
-			styles.HelpText.Width(width).MaxWidth(width).Render(row.Text),
-		)
-	}
-	return lipgloss.NewStyle().Width(width).Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
-}
-
 func joinWithGap(blocks []string, gap int) []string {
 	if len(blocks) == 0 {
 		return nil
@@ -148,13 +158,6 @@ func joinWithGap(blocks []string, gap int) []string {
 		spaced = append(spaced, block)
 	}
 	return spaced
-}
-
-func commandSummary(spec commands.Spec) string {
-	if len(spec.Aliases) == 0 {
-		return spec.Summary
-	}
-	return spec.Summary + " (" + strings.Join(spec.Aliases, ", ") + ")"
 }
 
 func helpChrome(styles theme.Styles) int {

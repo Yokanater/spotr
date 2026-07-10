@@ -51,10 +51,10 @@ func TestProgramViewOpensAtWorkoutsAndThenExercises(t *testing.T) {
 		0,
 		false,
 	)
-	if !strings.Contains(view, "01 workouts") {
+	if !strings.Contains(view, "workouts") {
 		t.Fatalf("ProgramView() did not render workouts panel; view:\n%s", view)
 	}
-	if strings.Contains(view, "programs") || strings.Contains(view, "02 exercises") {
+	if strings.Contains(view, "programs") || strings.Contains(view, "exercises") {
 		t.Fatalf("ProgramView() added a program step or rendered exercises before workout selection; view:\n%s", view)
 	}
 
@@ -71,7 +71,7 @@ func TestProgramViewOpensAtWorkoutsAndThenExercises(t *testing.T) {
 		0,
 		false,
 	)
-	if !strings.Contains(view, "01 workouts") || !strings.Contains(view, "02 exercises") {
+	if !strings.Contains(view, "workouts") || !strings.Contains(view, "exercises") {
 		t.Fatalf("ProgramView() did not render workout and exercise panels; view:\n%s", view)
 	}
 	if strings.Contains(view, "01 programs") {

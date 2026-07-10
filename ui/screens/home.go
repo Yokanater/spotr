@@ -43,7 +43,6 @@ func RenderHeader(styles theme.Styles, active string) string {
 		gap = " "
 	}
 	nav := renderNav(styles, active, gap, []string{"home", "workouts", "templates", "logs", "help"})
-
 	return styles.Header.Align(lipgloss.Center).Render(lipgloss.JoinHorizontal(lipgloss.Top, brand, "    ", nav))
 }
 

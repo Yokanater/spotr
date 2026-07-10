@@ -11,30 +11,18 @@ import (
 
 func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.Workout, exercises []data.Exercise, activeProgram data.Program, activeWorkout data.Workout, activeExercise data.Exercise, programCursor int, workoutCursor int, exerciseCursor int, choosingProgram bool) string {
 	if choosingProgram || activeProgram.ProgramId == 0 {
-		title := styles.ProgramTitle.Render("programs")
-		subtitle := styles.ProgramSubtitle.Render("Choose once, then Spotr opens straight to your workouts.")
+		heading := renderTrainingHeading(styles, "programs", "choose once — Spotr remembers")
 		programPanel := renderProgramSection(styles, "programs", programNames(programs), "press a to create one or t to use a template", programCursor)
-		return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "workouts"), "", title, subtitle, "", programPanel)
+		return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "workouts"), "", heading, "", programPanel)
 	}
 
-	title := styles.ProgramTitle.Render("workouts")
-
-	var context []string
-	context = append(context, "program "+activeProgram.ProgramName)
-	if activeWorkout.WorkoutId == 0 {
-		context = append(context, "workout none")
-	} else {
-		context = append(context, "workout "+activeWorkout.Name)
+	context := activeProgram.ProgramName
+	if activeWorkout.WorkoutId != 0 {
+		context += " / " + activeWorkout.Name
 	}
-	if activeExercise.ExerciseId == 0 {
-		context = append(context, "exercise none")
-	} else {
-		context = append(context, "exercise "+exerciseLabel(activeExercise))
-	}
-
-	subtitle := styles.ProgramSubtitle.Render(strings.Join(context, " / "))
-	workoutPanel := renderProgramSection(styles, "01 workouts", workoutNames(workouts), "press a to add your first workout", workoutCursor)
-	exercisePanel := renderExerciseSection(styles, "02 exercises", exercises, "press a to add your first exercise", exerciseCursor)
+	heading := renderTrainingHeading(styles, "workouts", context)
+	workoutPanel := renderProgramSection(styles, "workouts", workoutNames(workouts), "press a to add your first workout", workoutCursor)
+	exercisePanel := renderExerciseSection(styles, "exercises", exercises, "press a to add your first exercise", exerciseCursor)
 
 	panels := visibleTrainingPanels(styles, activeWorkout, workoutPanel, exercisePanel)
 	panelBlock := lipgloss.JoinHorizontal(lipgloss.Top, panels...)
@@ -44,7 +32,18 @@ func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.W
 	if styles.ProgramListRows <= 1 {
 		return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "workouts"), "", panelBlock)
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "workouts"), "", title, subtitle, "", panelBlock)
+	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "workouts"), "", heading, "", panelBlock)
+}
+
+func renderTrainingHeading(styles theme.Styles, title string, context string) string {
+	width := styles.ProgramTitle.GetWidth()
+	left := styles.ProgramTitle.Width(0).Render(title)
+	right := styles.ProgramSubtitle.Width(0).Render(context)
+	space := width - lipgloss.Width(left) - lipgloss.Width(right)
+	if space < 2 {
+		return lipgloss.JoinVertical(lipgloss.Left, left, right)
+	}
+	return lipgloss.NewStyle().Width(width).Render(lipgloss.JoinHorizontal(lipgloss.Top, left, strings.Repeat(" ", space), right))
 }
 
 func visibleTrainingPanels(styles theme.Styles, activeWorkout data.Workout, workoutPanel string, exercisePanel string) []string {

@@ -8,55 +8,55 @@ type KeyBinding struct {
 var KeyBindings = []KeyBinding{
 	{
 		Key:    "↑/↓ or k/j",
-		Action: "move through a list",
+		Action: "move",
 	},
 	{
 		Key:    "enter",
-		Action: "open selected item",
+		Action: "open",
 	},
 	{
 		Key:    "a",
-		Action: "add item",
+		Action: "add",
 	},
 	{
 		Key:    "s",
-		Action: "start workout log",
+		Action: "start session",
 	},
 	{
 		Key:    "l",
-		Action: "log actual sets and reps",
+		Action: "log sets",
 	},
 	{
 		Key:    "v",
-		Action: "view workout logs",
+		Action: "view graph or logs",
 	},
 	{
 		Key:    "t",
-		Action: "browse templates",
+		Action: "templates",
 	},
 	{
 		Key:    "p",
-		Action: "switch or manage programs",
+		Action: "programs",
 	},
 	{
 		Key:    "f",
-		Action: "finish workout log",
+		Action: "finish session",
 	},
 	{
 		Key:    "e",
-		Action: "edit selected item",
+		Action: "edit",
 	},
 	{
 		Key:    "d",
-		Action: "delete selected item",
+		Action: "delete",
 	},
 	{
 		Key:    "b/esc",
-		Action: "go back",
+		Action: "back",
 	},
 	{
 		Key:    ":",
-		Action: "command mode",
+		Action: "commands",
 	},
 	{
 		Key:    "?",
@@ -64,6 +64,6 @@ var KeyBindings = []KeyBinding{
 	},
 	{
 		Key:    "q",
-		Action: "confirm quit",
+		Action: "quit",
 	},
 }
