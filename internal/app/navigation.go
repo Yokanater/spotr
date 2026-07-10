@@ -3,7 +3,11 @@ package app
 import "spotr/data"
 
 func (m *model) moveCursor(delta int) {
-	if m.screen == screenHome || m.screen == screenHelp {
+	if m.screen == screenHome {
+		m.programCursor = moveIndex(m.programCursor, delta, len(m.programs))
+		return
+	}
+	if m.screen == screenHelp {
 		return
 	}
 	if m.screen == screenTemplates {
@@ -52,6 +56,10 @@ func (m *model) openSelected() {
 	}
 	if m.screen == screenHistory {
 		m.openSelectedHistory()
+		return
+	}
+	if m.screen == screenHome {
+		m.openHomeProgram()
 		return
 	}
 	level := m.currentLevel()
@@ -104,6 +112,25 @@ func (m *model) openSelected() {
 		m.activeExercise = exercise
 		m.status = "Selected " + exercise.Name
 	}
+}
+
+func (m *model) openHomeProgram() {
+	if len(m.programs) == 0 {
+		m.status = "Create a program or browse templates"
+		return
+	}
+	m.programCursor = clampIndex(m.programCursor, len(m.programs))
+	program := m.programs[m.programCursor]
+	if err := m.activateProgram(program); err != nil {
+		m.status = err.Error()
+		return
+	}
+	m.screen = screenProgram
+	if len(m.workouts) == 0 {
+		m.status = "No workouts in " + program.ProgramName + ". Press a to add one."
+		return
+	}
+	m.status = "Opened " + program.ProgramName
 }
 
 func (m *model) openSelectedHistory() {

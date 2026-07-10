@@ -40,6 +40,11 @@ func (m *model) startAdd() {
 	m.input.Focus()
 	m.input.SetValue("")
 
+	if m.screen == screenHome {
+		m.startAddProgram()
+		return
+	}
+
 	switch m.currentLevel() {
 	case screenPrograms:
 		m.startAddProgram()
@@ -56,7 +61,6 @@ func (m *model) startAddProgram() {
 	m.mode = modeInput
 	m.input.Focus()
 	m.input.SetValue("")
-	m.screen = screenProgram
 	m.inputPurpose = inputAddProgram
 	m.input.Placeholder = "program name"
 	m.input.Prompt = "add program $ "
