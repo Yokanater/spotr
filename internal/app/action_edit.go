@@ -14,12 +14,13 @@ func (m *model) startEditLogEntryInput() {
 	}
 
 	m.mode = modeInput
+	m.input.Focus()
 	m.inputPurpose = inputEditLog
 	m.editingEntry = entry
 	m.input.SetValue(logEntryInputValue(entry))
 	m.input.Placeholder = "sets reps or reps/reps [weight] [notes]"
 	m.input.Prompt = "edit log #" + strconv.FormatInt(entry.EntryId, 10) + " $ "
-	m.status = helperMessage("edit sets reps weight notes", "enter save", "esc cancel")
+	m.status = "Sets, reps, load, then optional notes"
 }
 
 func (m *model) submitEditedLogEntry(value string) {
@@ -54,7 +55,6 @@ func (m *model) startEditSelectedInput() {
 		m.startEditLogEntryInput()
 		return
 	}
-	m.screen = screenProgram
 	switch m.currentLevel() {
 	case screenPrograms:
 		m.startEditProgramInput()
@@ -75,12 +75,13 @@ func (m *model) startEditProgramInput() {
 	}
 
 	m.mode = modeInput
+	m.input.Focus()
 	m.inputPurpose = inputEditProgram
 	m.editingProgram = program
 	m.input.SetValue(program.ProgramName)
 	m.input.Placeholder = "program name"
 	m.input.Prompt = "edit program #" + strconv.FormatInt(program.ProgramId, 10) + " $ "
-	m.status = helperMessage("edit program name", "enter save", "esc cancel")
+	m.status = "Rename program"
 }
 
 func (m *model) submitEditedProgram(value string) {
@@ -122,12 +123,13 @@ func (m *model) startEditWorkoutInput() {
 	}
 
 	m.mode = modeInput
+	m.input.Focus()
 	m.inputPurpose = inputEditWorkout
 	m.editingWorkout = workout
 	m.input.SetValue(workout.Name)
 	m.input.Placeholder = "workout name"
 	m.input.Prompt = "edit workout #" + strconv.FormatInt(workout.WorkoutId, 10) + " $ "
-	m.status = helperMessage("edit workout name", "enter save", "esc cancel")
+	m.status = "Rename workout"
 }
 
 func (m *model) submitEditedWorkout(value string) {
@@ -169,12 +171,13 @@ func (m *model) startEditExerciseInput() {
 	}
 
 	m.mode = modeInput
+	m.input.Focus()
 	m.inputPurpose = inputEditExercise
 	m.editingExercise = exercise
 	m.input.SetValue(exerciseInputValue(exercise))
 	m.input.Placeholder = "exercise name [sets] [reps]"
 	m.input.Prompt = "edit exercise #" + strconv.FormatInt(exercise.ExerciseId, 10) + " $ "
-	m.status = helperMessage("edit exercise name sets reps", "enter save", "esc cancel")
+	m.status = "Exercise name, sets, and reps"
 }
 
 func (m *model) submitEditedExercise(value string) {

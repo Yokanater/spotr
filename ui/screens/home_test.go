@@ -13,7 +13,7 @@ func TestRenderHeaderIncludesTemplates(t *testing.T) {
 	styles := theme.NewStyles(theme.Default(), 88, 24)
 	header := RenderHeader(styles, "templates")
 
-	for _, want := range []string{"home", "training", "templates", "logs", "help"} {
+	for _, want := range []string{"home", "workouts", "templates", "logs", "help"} {
 		if !strings.Contains(header, want) {
 			t.Fatalf("RenderHeader() missing %q: %q", want, header)
 		}

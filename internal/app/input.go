@@ -37,13 +37,15 @@ func (m *model) loadExercises(workout data.Workout) error {
 
 func (m *model) startAdd() {
 	m.mode = modeInput
+	m.input.Focus()
 	m.input.SetValue("")
-	m.screen = screenProgram
 
-	switch {
-	case m.activeWorkout.WorkoutId != 0:
+	switch m.currentLevel() {
+	case screenPrograms:
+		m.startAddProgram()
+	case screenExercises:
 		m.startAddExercise()
-	case m.activeProgram.ProgramId != 0:
+	case screenWorkouts:
 		m.startAddWorkout()
 	default:
 		m.startAddProgram()
@@ -52,32 +54,35 @@ func (m *model) startAdd() {
 
 func (m *model) startAddProgram() {
 	m.mode = modeInput
+	m.input.Focus()
 	m.input.SetValue("")
 	m.screen = screenProgram
 	m.inputPurpose = inputAddProgram
 	m.input.Placeholder = "program name"
 	m.input.Prompt = "add program $ "
-	m.status = helperMessage("type a program name", "enter create", "esc cancel")
+	m.status = "Name your program"
 }
 
 func (m *model) startAddWorkout() {
 	m.mode = modeInput
+	m.input.Focus()
 	m.input.SetValue("")
 	m.screen = screenProgram
 	m.inputPurpose = inputAddWorkout
 	m.input.Placeholder = "workout name"
 	m.input.Prompt = "add workout $ "
-	m.status = helperMessage("type a workout name", "enter create", "esc cancel")
+	m.status = "Name your workout"
 }
 
 func (m *model) startAddExercise() {
 	m.mode = modeInput
+	m.input.Focus()
 	m.input.SetValue("")
 	m.screen = screenProgram
 	m.inputPurpose = inputAddExercise
 	m.input.Placeholder = "exercise name [sets] [reps]"
 	m.input.Prompt = "add exercise $ "
-	m.status = helperMessage("type exercise name plus optional sets and reps", "enter create", "esc cancel")
+	m.status = "Exercise name, then optional sets and reps"
 }
 
 func (m *model) submitInput(purpose inputPurpose, value string) {
@@ -118,4 +123,5 @@ func inputCancelledStatus(purpose inputPurpose) string {
 func (m *model) resetInputPrompt() {
 	m.input.Placeholder = ""
 	m.input.Prompt = ""
+	m.input.Blur()
 }

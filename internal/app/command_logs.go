@@ -164,7 +164,7 @@ func (m *model) handleHistory(args []string) {
 		m.historyTitle = m.activeWorkout.Name + " sessions"
 		m.historyCursor = clampIndex(m.historyCursor, len(sessions))
 		m.screen = screenHistory
-		m.status = helperMessage("j/k scroll", "enter open", "b back")
+		m.status = "Recent sessions"
 
 	case "show":
 		if len(args) < 2 {
@@ -186,7 +186,7 @@ func (m *model) handleHistory(args []string) {
 		m.activeSession = session
 		m.historyTitle = m.activeWorkout.Name + " sessions"
 		m.screen = screenHistory
-		m.status = helperMessage("j/k scroll", "e edit", "d delete", "b back")
+		m.status = "Session details"
 
 	default:
 		m.status = fmt.Sprintf("unknown history command: %s", args[0])

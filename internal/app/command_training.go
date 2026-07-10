@@ -36,7 +36,11 @@ func (m *model) handleProgram(args []string) {
 		program := data.Program{ProgramId: id, ProgramName: name}
 		m.programs = append(m.programs, program)
 		m.programCursor = len(m.programs) - 1
-		m.status = "Created program"
+		if err := m.activateProgram(program); err != nil {
+			m.status = err.Error()
+			return
+		}
+		m.status = "Created program " + name + ". Add its first workout."
 
 	case "select":
 		if len(args) < 2 {
@@ -50,16 +54,10 @@ func (m *model) handleProgram(args []string) {
 			m.status = err.Error()
 			return
 		}
-		m.activeProgram = program
-		if err := m.loadWorkouts(program); err != nil {
+		if err := m.activateProgram(program); err != nil {
 			m.status = err.Error()
 			return
 		}
-		m.activeWorkout = data.Workout{}
-		m.activeExercise = data.Exercise{}
-		m.exercises = nil
-		m.workoutCursor = 0
-		m.exerciseCursor = 0
 		if len(m.workouts) == 0 {
 			m.startAddWorkout()
 			m.status = "no workouts in " + program.ProgramName + ". add the first workout"
@@ -120,6 +118,12 @@ func (m *model) handleProgram(args []string) {
 			m.exercises = nil
 			m.workoutCursor = 0
 			m.exerciseCursor = 0
+			if len(m.programs) > 0 {
+				if err := m.restoreActiveProgram(); err != nil {
+					m.status = err.Error()
+					return
+				}
+			}
 		}
 		m.status = "Deleted program " + program.ProgramName
 

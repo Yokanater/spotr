@@ -34,15 +34,16 @@ func (m *model) startLogExerciseInput() {
 	}
 
 	m.mode = modeInput
+	m.input.Focus()
 	m.inputPurpose = inputLogExercise
 	m.input.SetValue(suggestion)
 	m.input.Placeholder = "sets reps or reps/reps [weight] [notes]"
 	m.input.Prompt = "log " + exercise.Name + " $ "
 	if suggestion != "" {
-		m.status = helperMessage(fmt.Sprintf("suggested %dx%d", exercise.Sets, exercise.Reps), "use 6/4 for mixed reps", "enter log", "esc cancel")
+		m.status = fmt.Sprintf("Suggested %dx%d · mixed reps: 6/4", exercise.Sets, exercise.Reps)
 		return
 	}
-	m.status = helperMessage("enter actual sets and reps for "+exercise.Name, "enter log", "esc cancel")
+	m.status = "Enter sets and reps for " + exercise.Name
 }
 
 func (m *model) submitLoggedExercise(value string) {
@@ -123,7 +124,7 @@ func (m *model) viewRecentLogs() {
 		m.historyTitle = exercise.Name + " across " + m.activeProgram.ProgramName
 		m.historyCursor = 0
 		m.screen = screenHistory
-		m.status = helperMessage("j/k scroll", "enter open", "e edit", "d delete", "b back")
+		m.status = exercise.Name + " history"
 		return
 	}
 
@@ -143,7 +144,7 @@ func (m *model) viewWorkoutSessions(workout data.Workout) {
 	m.historyTitle = workout.Name + " sessions"
 	m.historyCursor = clampIndex(m.historyCursor, len(sessions))
 	m.screen = screenHistory
-	m.status = helperMessage("j/k scroll", "enter open", "b back")
+	m.status = workout.Name + " sessions"
 }
 
 func (m *model) workoutForHistory() (data.Workout, bool) {

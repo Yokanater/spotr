@@ -52,9 +52,10 @@ go test ./...
 
 ## Core Keys
 
-- `j` / `k`: move
+- `↑` / `↓` or `k` / `j`: move
 - `enter`: open selected item
 - `a`: add
+- `p`: switch or manage programs
 - `s`: start workout log
 - `l`: log an exercise
 - `v`: view logs
@@ -67,7 +68,9 @@ go test ./...
 - `?`: help
 - `q`: quit with confirmation
 
-Arrow keys still work as aliases
+Spotr remembers the active program and opens its workouts directly the next
+time it runs. Programs stay available through `p` when you want to switch or
+manage them.
 
 ## Templates
 

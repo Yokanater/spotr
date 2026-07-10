@@ -39,6 +39,7 @@ func (m model) runCommandLine(line string) (tea.Model, tea.Cmd) {
 		m.handleTemplate(command.Args)
 		return m, cmd
 	case "help":
+		m.helpReturnScreen = m.screen
 		m.screen = screenHelp
 		return m, cmd
 

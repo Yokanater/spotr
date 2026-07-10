@@ -9,60 +9,55 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.Workout, exercises []data.Exercise, activeProgram data.Program, activeWorkout data.Workout, activeExercise data.Exercise, programCursor int, workoutCursor int, exerciseCursor int) string {
-	title := styles.ProgramTitle.Render("training desk")
-
-	var context []string
-	if activeProgram.ProgramId == 0 {
-		context = append(context, "program none")
-	} else {
-		context = append(context, "program "+activeProgram.ProgramName)
-	}
-	if activeWorkout.WorkoutId == 0 {
-		context = append(context, "workout none")
-	} else {
-		context = append(context, "workout "+activeWorkout.Name)
-	}
-	if activeExercise.ExerciseId == 0 {
-		context = append(context, "exercise none")
-	} else {
-		context = append(context, "exercise "+exerciseLabel(activeExercise))
+func ProgramView(styles theme.Styles, programs []data.Program, workouts []data.Workout, exercises []data.Exercise, activeProgram data.Program, activeWorkout data.Workout, activeExercise data.Exercise, programCursor int, workoutCursor int, exerciseCursor int, choosingProgram bool) string {
+	if choosingProgram || activeProgram.ProgramId == 0 {
+		heading := renderTrainingHeading(styles, "programs", "choose once — Spotr remembers")
+		programPanel := renderProgramSection(styles, "programs", programNames(programs), "press a to create one or t to use a template", programCursor)
+		return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "workouts"), "", heading, "", programPanel)
 	}
 
-	subtitle := styles.ProgramSubtitle.Render(strings.Join(context, " / "))
-	programPanel := renderProgramSection(styles, "01 programs", programNames(programs), "press a to add program or t templates", programCursor)
-	workoutPanel := renderProgramSection(styles, "02 workouts", workoutNames(workouts), "press a to add workout", workoutCursor)
-	exercisePanel := renderExerciseSection(styles, "03 exercises", exercises, "press a to add exercise", exerciseCursor)
+	context := activeProgram.ProgramName
+	if activeWorkout.WorkoutId != 0 {
+		context += " / " + activeWorkout.Name
+	}
+	heading := renderTrainingHeading(styles, "workouts", context)
+	workoutPanel := renderProgramSection(styles, "workouts", workoutNames(workouts), "press a to add your first workout", workoutCursor)
+	exercisePanel := renderExerciseSection(styles, "exercises", exercises, "press a to add your first exercise", exerciseCursor)
 
-	panels := visiblePanels(styles, activeProgram, activeWorkout, programPanel, workoutPanel, exercisePanel)
+	panels := visibleTrainingPanels(styles, activeWorkout, workoutPanel, exercisePanel)
 	panelBlock := lipgloss.JoinHorizontal(lipgloss.Top, panels...)
 	if styles.ProgramTitle.GetWidth() < 82 {
 		panelBlock = lipgloss.JoinVertical(lipgloss.Left, panels...)
 	}
 	if styles.ProgramListRows <= 1 {
-		return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "training"), "", panelBlock)
+		return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "workouts"), "", panelBlock)
 	}
-	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "training"), "", title, subtitle, "", panelBlock)
+	return lipgloss.JoinVertical(lipgloss.Left, RenderHeader(styles, "workouts"), "", heading, "", panelBlock)
 }
 
-func visiblePanels(styles theme.Styles, activeProgram data.Program, activeWorkout data.Workout, programPanel string, workoutPanel string, exercisePanel string) []string {
+func renderTrainingHeading(styles theme.Styles, title string, context string) string {
+	width := styles.ProgramTitle.GetWidth()
+	left := styles.ProgramTitle.Width(0).Render(title)
+	right := styles.ProgramSubtitle.Width(0).Render(context)
+	space := width - lipgloss.Width(left) - lipgloss.Width(right)
+	if space < 2 {
+		return lipgloss.JoinVertical(lipgloss.Left, left, right)
+	}
+	return lipgloss.NewStyle().Width(width).Render(lipgloss.JoinHorizontal(lipgloss.Top, left, strings.Repeat(" ", space), right))
+}
+
+func visibleTrainingPanels(styles theme.Styles, activeWorkout data.Workout, workoutPanel string, exercisePanel string) []string {
 	if styles.ProgramTitle.GetWidth() < 82 {
 		if activeWorkout.WorkoutId != 0 {
 			return []string{exercisePanel}
 		}
-		if activeProgram.ProgramId != 0 {
-			return []string{workoutPanel}
-		}
-		return []string{programPanel}
+		return []string{workoutPanel}
 	}
 
 	if activeWorkout.WorkoutId != 0 {
-		return []string{programPanel, workoutPanel, exercisePanel}
+		return []string{workoutPanel, exercisePanel}
 	}
-	if activeProgram.ProgramId != 0 {
-		return []string{programPanel, workoutPanel}
-	}
-	return []string{programPanel}
+	return []string{workoutPanel}
 }
 
 func renderExerciseSection(styles theme.Styles, title string, exercises []data.Exercise, emptyHint string, cursor int) string {

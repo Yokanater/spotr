@@ -9,18 +9,11 @@ import (
 	"charm.land/lipgloss/v2"
 )
 
-func TestHelpViewIncludesCommandUsage(t *testing.T) {
+func TestHelpViewIncludesCommandGroups(t *testing.T) {
 	styles := theme.NewStyles(theme.Default(), 100, 30)
 	view := HelpView(styles)
 
-	for _, want := range []string{
-		"exercise list | exercise add <name>",
-		"exercise select <id|name>",
-		"log start | log add [exercise] <sets> <reps>",
-		"log finish",
-		"log current",
-		"template list | template show <name|path>",
-	} {
+	for _, want := range []string{":program", ":exercise", ":log", ":template"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("HelpView() did not include %q; view:\n%s", want, view)
 		}
@@ -31,7 +24,7 @@ func TestHelpViewIncludesTemplateKey(t *testing.T) {
 	styles := theme.NewStyles(theme.Default(), 100, 30)
 	view := HelpView(styles)
 
-	if !strings.Contains(view, "browse templates") {
+	if !strings.Contains(view, "templates") {
 		t.Fatalf("HelpView() did not include template key; view:\n%s", view)
 	}
 }
@@ -47,5 +40,15 @@ func TestHelpViewResponsiveWidths(t *testing.T) {
 				t.Fatalf("HelpView(%d) line width = %d, want <= %d:\n%s", width, got, limit, line)
 			}
 		}
+	}
+}
+
+func TestCompactHelpRowsStayOnOneLine(t *testing.T) {
+	styles := theme.NewStyles(theme.Default(), 64, 30)
+	rows := []helpRow{{Label: "enter", Text: "open"}, {Label: "v", Text: "view graph"}}
+	view := renderCompactKeySection(styles, "keys", rows, 30)
+
+	if got := len(strings.Split(view, "\n")); got != 3 {
+		t.Fatalf("compact help lines = %d; want title plus one line per shortcut:\n%s", got, view)
 	}
 }

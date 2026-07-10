@@ -42,8 +42,7 @@ func RenderHeader(styles theme.Styles, active string) string {
 	if styles.Header.GetWidth() < 72 {
 		gap = " "
 	}
-	nav := renderNav(styles, active, gap, []string{"home", "training", "templates", "logs", "help"})
-
+	nav := renderNav(styles, active, gap, []string{"home", "workouts", "templates", "logs", "help"})
 	return styles.Header.Align(lipgloss.Center).Render(lipgloss.JoinHorizontal(lipgloss.Top, brand, "    ", nav))
 }
 

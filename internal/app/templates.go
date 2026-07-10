@@ -7,9 +7,9 @@ import (
 	"os"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"spotr/data"
 	"spotr/ui/screens"
-	"sort"
 	"strings"
 )
 
@@ -144,12 +144,15 @@ type programTemplateFile struct {
 }
 
 func (m *model) openTemplates() {
+	if m.screen != screenTemplates {
+		m.templateReturnScreen = m.screen
+	}
 	if err := m.loadTemplates(); err != nil {
 		m.status = err.Error()
 		return
 	}
 	m.screen = screenTemplates
-	m.status = m.normalHelp()
+	m.status = "Choose a template to import"
 }
 
 func (m *model) loadTemplates() error {
@@ -224,23 +227,12 @@ func findProgramTemplate(nameOrPath string) (programTemplateFile, error) {
 func (m *model) importProgramTemplate(tmpl programTemplate) (bool, error) {
 	program, err := m.store.SelectProgram(tmpl.Name)
 	if err == nil {
-		m.activeProgram = program
 		if err := m.loadPrograms(); err != nil {
 			return false, err
 		}
-		for i := range m.programs {
-			if m.programs[i].ProgramId == program.ProgramId {
-				m.programCursor = i
-				break
-			}
-		}
-		if err := m.loadWorkouts(program); err != nil {
+		if err := m.activateProgram(program); err != nil {
 			return false, err
 		}
-		m.activeWorkout = data.Workout{}
-		m.activeExercise = data.Exercise{}
-		m.exerciseCursor = 0
-		m.exercises = nil
 		return false, nil
 	}
 	if err != sql.ErrNoRows {
@@ -345,7 +337,7 @@ func (m *model) createProgramFromTemplate(tmpl programTemplate) error {
 			break
 		}
 	}
-	return m.loadWorkouts(program)
+	return m.activateProgram(program)
 }
 
 func (m *model) exportProgramTemplate(program data.Program) (programTemplate, error) {

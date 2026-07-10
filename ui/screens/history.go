@@ -2,10 +2,13 @@ package screens
 
 import (
 	"fmt"
+	"math"
+	"sort"
 	"spotr/data"
 	"spotr/ui/theme"
-	"sort"
+	"strconv"
 	"strings"
+	"time"
 
 	"charm.land/lipgloss/v2"
 )
@@ -160,23 +163,28 @@ func renderProgressSummary(styles theme.Styles, entries []data.GymSessionEntry) 
 	if len(points) == 0 {
 		return []string{styles.ProgramEmpty.Render("no weighted logs to graph yet")}
 	}
-	if len(points) > 8 {
-		points = points[len(points)-8:]
+	if len(points) > 12 {
+		points = points[len(points)-12:]
 	}
 
 	contentW := max(24, styles.Box.GetWidth()-8)
-	_, maxWeight := weightRange(points)
 	first := points[0]
 	last := points[len(points)-1]
-	delta := last.Weight - first.Weight
-	summary := fmt.Sprintf("best %.1f   latest %.1f   change %+0.1f", maxWeight, last.Weight, delta)
-	if contentW < 48 {
-		summary = fmt.Sprintf("best %.1f  latest %.1f", maxWeight, last.Weight)
+	firstStrength := estimatedOneRepMax(first)
+	lastStrength := estimatedOneRepMax(last)
+	bestStrength := firstStrength
+	bestVolume := exerciseVolume(first)
+	for _, point := range points[1:] {
+		bestStrength = max(bestStrength, estimatedOneRepMax(point))
+		bestVolume = max(bestVolume, exerciseVolume(point))
 	}
+	strengthSummary := fmt.Sprintf("latest %.1f   best %.1f   change %+0.1f", lastStrength, bestStrength, lastStrength-firstStrength)
+	volumeSummary := fmt.Sprintf("volume latest %.0f   best %.0f", exerciseVolume(last), bestVolume)
 
-	lines := []string{styles.ProgramPanelTitle.Render("progress")}
-	lines = append(lines, styles.ProgramEmpty.Render(summary))
-	lines = append(lines, styles.ProgramItem.Render(weightSparkline(points)))
+	lines := []string{styles.ProgramPanelTitle.Render("strength · estimated 1RM")}
+	lines = append(lines, styles.ProgramEmpty.Render(strengthSummary))
+	lines = append(lines, styles.ProgramItem.Render(strings.Join(strengthChart(points, contentW), "\n")))
+	lines = append(lines, styles.ProgramEmpty.Render(volumeSummary))
 	lines = append(lines, styles.ProgramEmpty.Render(progressChips(points, contentW)))
 	return lines
 }
@@ -197,44 +205,120 @@ func weightedChartEntries(entries []data.GymSessionEntry) []data.GymSessionEntry
 	return points
 }
 
-func weightRange(points []data.GymSessionEntry) (float64, float64) {
-	minWeight := points[0].Weight
-	maxWeight := points[0].Weight
-	for _, point := range points[1:] {
-		if point.Weight < minWeight {
-			minWeight = point.Weight
-		}
-		if point.Weight > maxWeight {
-			maxWeight = point.Weight
-		}
-	}
-	return minWeight, maxWeight
+func estimatedOneRepMax(entry data.GymSessionEntry) float64 {
+	return entry.Weight * (1 + float64(maxEffortReps(entry))/30)
 }
 
-func weightSparkline(points []data.GymSessionEntry) string {
-	minWeight, maxWeight := weightRange(points)
-	levels := []rune("▁▂▃▄▅▆▇█")
-	values := make([]rune, 0, len(points))
-	for _, point := range points {
-		level := 0
-		if maxWeight > minWeight {
-			level = int((point.Weight - minWeight) / (maxWeight - minWeight) * float64(len(levels)-1))
+func maxEffortReps(entry data.GymSessionEntry) int {
+	maximum := entry.Reps
+	for _, value := range strings.Split(entry.RepsDetail, "/") {
+		reps, err := strconv.Atoi(value)
+		if err == nil && reps > maximum {
+			maximum = reps
 		}
-		if level < 0 {
-			level = 0
-		}
-		if level >= len(levels) {
-			level = len(levels) - 1
-		}
-		values = append(values, levels[level])
 	}
-	return strings.Join(strings.Split(string(values), ""), " ")
+	return maximum
+}
+
+func exerciseVolume(entry data.GymSessionEntry) float64 {
+	totalReps := entry.Sets * entry.Reps
+	if entry.RepsDetail != "" {
+		totalReps = 0
+		for _, value := range strings.Split(entry.RepsDetail, "/") {
+			reps, err := strconv.Atoi(value)
+			if err == nil {
+				totalReps += reps
+			}
+		}
+	}
+	return entry.Weight * float64(totalReps)
+}
+
+func strengthChart(points []data.GymSessionEntry, width int) []string {
+	if len(points) == 1 {
+		value := estimatedOneRepMax(points[0])
+		return []string{
+			fmt.Sprintf("%6.1f │█", value),
+			"       " + shortDate(points[0].StartedAt),
+		}
+	}
+	const height = 3
+	plotWidth := min(36, max(10, width-9))
+	columns := make([]float64, plotWidth)
+	for i := range columns {
+		columns[i] = math.NaN()
+	}
+	positions := chartPositions(points, plotWidth)
+	minimum := estimatedOneRepMax(points[0])
+	maximum := minimum
+	for i, point := range points {
+		value := estimatedOneRepMax(point)
+		minimum = min(minimum, value)
+		maximum = max(maximum, value)
+		position := positions[i]
+		if math.IsNaN(columns[position]) || value > columns[position] {
+			columns[position] = value
+		}
+	}
+
+	levels := []rune(" ▁▂▃▄▅▆▇█")
+	lines := make([]string, 0, height+1)
+	for row := 0; row < height; row++ {
+		label := "       │"
+		if row == 0 {
+			label = fmt.Sprintf("%6.1f │", maximum)
+		} else if row == height-1 {
+			label = fmt.Sprintf("%6.1f │", minimum)
+		}
+		var bars strings.Builder
+		for _, value := range columns {
+			if math.IsNaN(value) {
+				bars.WriteByte(' ')
+				continue
+			}
+			scaled := 1
+			if maximum > minimum {
+				scaled += int((value - minimum) / (maximum - minimum) * float64(height*8-1))
+			} else {
+				scaled = height * 4
+			}
+			remaining := scaled - (height-1-row)*8
+			remaining = min(8, max(0, remaining))
+			bars.WriteRune(levels[remaining])
+		}
+		lines = append(lines, label+bars.String())
+	}
+	firstDate := shortDate(points[0].StartedAt)
+	lastDate := shortDate(points[len(points)-1].StartedAt)
+	dateGap := max(1, plotWidth-len(firstDate)-len(lastDate))
+	lines = append(lines, "       "+firstDate+strings.Repeat(" ", dateGap)+lastDate)
+	return lines
+}
+
+func chartPositions(points []data.GymSessionEntry, width int) []int {
+	positions := make([]int, len(points))
+	if len(points) <= 1 {
+		return positions
+	}
+	first, firstErr := time.Parse(time.RFC3339, points[0].StartedAt)
+	last, lastErr := time.Parse(time.RFC3339, points[len(points)-1].StartedAt)
+	span := last.Sub(first)
+	for i, point := range points {
+		position := i * (width - 1) / (len(points) - 1)
+		if firstErr == nil && lastErr == nil && span > 0 {
+			if timestamp, err := time.Parse(time.RFC3339, point.StartedAt); err == nil {
+				position = int(float64(timestamp.Sub(first)) / float64(span) * float64(width-1))
+			}
+		}
+		positions[i] = min(width-1, max(0, position))
+	}
+	return positions
 }
 
 func progressChips(points []data.GymSessionEntry, width int) string {
 	chips := make([]string, 0, len(points))
 	for _, point := range points {
-		chips = append(chips, fmt.Sprintf("%s %.1f %s", shortDate(point.StartedAt), point.Weight, historySetRepLabel(point)))
+		chips = append(chips, fmt.Sprintf("%s load %.1f %s", shortDate(point.StartedAt), point.Weight, historySetRepLabel(point)))
 	}
 	row := strings.Join(chips, "  ·  ")
 	if lipgloss.Width(row) <= width {
