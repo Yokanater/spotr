@@ -7,7 +7,6 @@ func (m *model) requestDeleteSelected() {
 		m.requestDeleteLogEntry()
 		return
 	}
-	m.screen = screenProgram
 	switch m.currentLevel() {
 	case screenPrograms:
 		m.requestDeleteProgram()

@@ -3,6 +3,9 @@ package app
 import "spotr/data"
 
 func (m *model) moveCursor(delta int) {
+	if m.screen == screenHome || m.screen == screenHelp {
+		return
+	}
 	if m.screen == screenTemplates {
 		m.templateCursor = moveIndex(m.templateCursor, delta, len(m.templateFiles))
 		return
@@ -18,7 +21,6 @@ func (m *model) moveCursor(delta int) {
 		}
 		return
 	}
-	m.screen = screenProgram
 	switch m.currentLevel() {
 	case screenPrograms:
 		m.programCursor = moveIndex(m.programCursor, delta, len(m.programs))
@@ -52,8 +54,9 @@ func (m *model) openSelected() {
 		m.openSelectedHistory()
 		return
 	}
+	level := m.currentLevel()
 	m.screen = screenProgram
-	switch m.currentLevel() {
+	switch level {
 	case screenPrograms:
 		if len(m.programs) == 0 {
 			m.status = "no programs yet. press a to add one"
@@ -61,16 +64,11 @@ func (m *model) openSelected() {
 		}
 		m.programCursor = clampIndex(m.programCursor, len(m.programs))
 		program := m.programs[m.programCursor]
-		m.activeProgram = program
-		if err := m.loadWorkouts(program); err != nil {
+		if err := m.activateProgram(program); err != nil {
 			m.status = err.Error()
 			return
 		}
-		m.activeWorkout = data.Workout{}
-		m.activeExercise = data.Exercise{}
-		m.workoutCursor = 0
-		m.exerciseCursor = 0
-		m.exercises = nil
+		m.screen = screenProgram
 		if len(m.workouts) == 0 {
 			m.startAddWorkout()
 			m.status = "no workouts in " + program.ProgramName + ". add the first workout"
@@ -167,6 +165,15 @@ func clampIndex(current int, length int) int {
 }
 
 func (m *model) goBack() {
+	if m.screen == screenPrograms {
+		if m.activeProgram.ProgramId == 0 {
+			m.goHome()
+			return
+		}
+		m.screen = screenProgram
+		m.status = "Back to workouts."
+		return
+	}
 	if m.screen == screenHelp {
 		m.screen = screenProgram
 		m.status = "back"
@@ -215,14 +222,8 @@ func (m *model) goBack() {
 		m.exerciseCursor = 0
 		m.status = "back to workouts"
 	case m.activeProgram.ProgramId != 0:
-		m.activeProgram = data.Program{}
-		m.activeWorkout = data.Workout{}
-		m.activeExercise = data.Exercise{}
-		m.workouts = nil
-		m.exercises = nil
-		m.workoutCursor = 0
-		m.exerciseCursor = 0
-		m.status = "back to programs"
+		m.goHome()
+		return
 	default:
 		m.goHome()
 	}
@@ -235,6 +236,9 @@ func (m *model) goHome() {
 }
 
 func (m model) currentLevel() screen {
+	if m.screen == screenPrograms {
+		return screenPrograms
+	}
 	if m.activeWorkout.WorkoutId != 0 {
 		return screenExercises
 	}
@@ -242,4 +246,13 @@ func (m model) currentLevel() screen {
 		return screenWorkouts
 	}
 	return screenPrograms
+}
+
+func (m *model) openProgramPicker() {
+	m.screen = screenPrograms
+	m.activeWorkout = data.Workout{}
+	m.activeExercise = data.Exercise{}
+	m.exercises = nil
+	m.exerciseCursor = 0
+	m.status = "Choose a program. Spotr will remember it next time."
 }

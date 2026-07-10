@@ -86,7 +86,7 @@ func TestNormalHelpOffersTemplatesWhenNoProgramsExist(t *testing.T) {
 	m := model{screen: screenProgram}
 	got := m.normalHelp()
 
-	for _, want := range []string{"a add program", "t templates"} {
+	for _, want := range []string{"a new program", "t use template"} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("normalHelp() = %q; missing %q", got, want)
 		}
@@ -127,6 +127,111 @@ func TestNormalKeySupportsVimHistoryScroll(t *testing.T) {
 	got = updated.(model)
 	if got.historyCursor != 0 {
 		t.Fatalf("historyCursor after k = %d; want 0", got.historyCursor)
+	}
+}
+
+func TestProgramPickerActionsTargetPrograms(t *testing.T) {
+	m := model{
+		mode:          modeNormal,
+		screen:        screenPrograms,
+		activeProgram: data.Program{ProgramId: 1, ProgramName: "Current"},
+		programs:      []data.Program{{ProgramId: 1, ProgramName: "Current"}},
+		workouts:      []data.Workout{{WorkoutId: 2, ProgramId: 1, Name: "Push"}},
+	}
+
+	m.startAdd()
+	if m.inputPurpose != inputAddProgram {
+		t.Fatalf("startAdd() purpose = %q; want add program", m.inputPurpose)
+	}
+
+	m.mode = modeNormal
+	m.screen = screenPrograms
+	m.startEditSelectedInput()
+	if m.inputPurpose != inputEditProgram {
+		t.Fatalf("startEditSelectedInput() purpose = %q; want edit program", m.inputPurpose)
+	}
+
+	m.mode = modeNormal
+	m.screen = screenPrograms
+	m.requestDeleteSelected()
+	if m.deleteTarget != deleteProgram {
+		t.Fatalf("requestDeleteSelected() target = %q; want program", m.deleteTarget)
+	}
+}
+
+func TestInitialModelRestoresLastActiveProgram(t *testing.T) {
+	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
+	if err != nil {
+		t.Fatalf("NewSQLite() error = %v", err)
+	}
+	defer st.Close()
+
+	firstID, err := st.CreateProgram("First")
+	if err != nil {
+		t.Fatalf("CreateProgram(First) error = %v", err)
+	}
+	secondID, err := st.CreateProgram("Second")
+	if err != nil {
+		t.Fatalf("CreateProgram(Second) error = %v", err)
+	}
+	second := data.Program{ProgramId: secondID, ProgramName: "Second"}
+	if err := st.SetActiveProgram(second); err != nil {
+		t.Fatalf("SetActiveProgram() error = %v", err)
+	}
+	if err := st.CreateWorkout("Push", second); err != nil {
+		t.Fatalf("CreateWorkout() error = %v", err)
+	}
+
+	m := initialModel(st)
+	if m.activeProgram.ProgramId != secondID || m.activeProgram.ProgramId == firstID {
+		t.Fatalf("activeProgram = %+v; want remembered Second program", m.activeProgram)
+	}
+	if len(m.workouts) != 1 || m.workouts[0].Name != "Push" {
+		t.Fatalf("workouts = %+v; want remembered program workouts", m.workouts)
+	}
+}
+
+func TestOpenSelectedProgramPickerActivatesProgram(t *testing.T) {
+	st, err := store.NewSQLite(filepath.Join(t.TempDir(), "spotr.db"))
+	if err != nil {
+		t.Fatalf("NewSQLite() error = %v", err)
+	}
+	defer st.Close()
+
+	firstID, err := st.CreateProgram("First")
+	if err != nil {
+		t.Fatalf("CreateProgram(First) error = %v", err)
+	}
+	secondID, err := st.CreateProgram("Second")
+	if err != nil {
+		t.Fatalf("CreateProgram(Second) error = %v", err)
+	}
+	second := data.Program{ProgramId: secondID, ProgramName: "Second"}
+	if err := st.CreateWorkout("Pull", second); err != nil {
+		t.Fatalf("CreateWorkout() error = %v", err)
+	}
+
+	m := model{
+		store:         st,
+		screen:        screenPrograms,
+		activeProgram: data.Program{ProgramId: firstID, ProgramName: "First"},
+		programs: []data.Program{
+			{ProgramId: firstID, ProgramName: "First"},
+			second,
+		},
+		programCursor: 1,
+	}
+	m.openSelected()
+
+	if m.screen != screenProgram || m.activeProgram.ProgramId != secondID {
+		t.Fatalf("screen = %q, activeProgram = %+v; want Second workouts", m.screen, m.activeProgram)
+	}
+	if len(m.workouts) != 1 || m.workouts[0].Name != "Pull" {
+		t.Fatalf("workouts = %+v; want selected program workouts", m.workouts)
+	}
+	remembered, err := st.ActiveProgram()
+	if err != nil || remembered.ProgramId != secondID {
+		t.Fatalf("ActiveProgram() = %+v, %v; want remembered Second", remembered, err)
 	}
 }
 
@@ -376,7 +481,7 @@ func TestTemplateListCommandOpensTemplateBrowser(t *testing.T) {
 	if len(m.templateFiles) == 0 {
 		t.Fatal("templateFiles empty; want bundled templates")
 	}
-	if m.status != helperMessage("j/k move", "enter import", "b back", ": command") {
+	if m.status != helperMessage("↑/↓ choose", "enter import", "b back", "? all keys") {
 		t.Fatalf("status = %q; want template browser help", m.status)
 	}
 }

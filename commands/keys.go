@@ -7,12 +7,8 @@ type KeyBinding struct {
 
 var KeyBindings = []KeyBinding{
 	{
-		Key:    "j",
-		Action: "move next",
-	},
-	{
-		Key:    "k",
-		Action: "move previous",
+		Key:    "↑/↓ or k/j",
+		Action: "move through a list",
 	},
 	{
 		Key:    "enter",
@@ -37,6 +33,10 @@ var KeyBindings = []KeyBinding{
 	{
 		Key:    "t",
 		Action: "browse templates",
+	},
+	{
+		Key:    "p",
+		Action: "switch or manage programs",
 	},
 	{
 		Key:    "f",

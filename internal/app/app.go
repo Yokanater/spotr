@@ -4,6 +4,7 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
+	"database/sql"
 	"spotr/data"
 	"spotr/store"
 	"spotr/ui/screens"
@@ -127,9 +128,50 @@ func initialModel(st *store.Store) model {
 	if err := m.loadPrograms(); err != nil {
 		m.status = err.Error()
 	} else {
-		m.status = m.normalHelp()
+		if err := m.restoreActiveProgram(); err != nil {
+			m.status = err.Error()
+		} else if m.activeProgram.ProgramId != 0 {
+			m.status = "Ready. Open workouts to continue your program."
+		} else {
+			m.status = "Start with a template or create your first program."
+		}
 	}
 	return m
+}
+
+func (m *model) restoreActiveProgram() error {
+	if len(m.programs) == 0 {
+		return nil
+	}
+	program, err := m.store.ActiveProgram()
+	if err == sql.ErrNoRows {
+		program = m.programs[0]
+	} else if err != nil {
+		return err
+	}
+	return m.activateProgram(program)
+}
+
+func (m *model) activateProgram(program data.Program) error {
+	m.activeProgram = program
+	m.activeWorkout = data.Workout{}
+	m.activeExercise = data.Exercise{}
+	m.exercises = nil
+	m.workoutCursor = 0
+	m.exerciseCursor = 0
+	if err := m.loadWorkouts(program); err != nil {
+		return err
+	}
+	if err := m.store.SetActiveProgram(program); err != nil {
+		return err
+	}
+	for i := range m.programs {
+		if m.programs[i].ProgramId == program.ProgramId {
+			m.programCursor = i
+			break
+		}
+	}
+	return nil
 }
 
 func (m model) Init() tea.Cmd {
@@ -149,7 +191,8 @@ func (m model) View() tea.View {
 	rawInput := m.input.View()
 	input := m.styles.Input.Render(rawInput)
 	status := renderStatus(m.styles, m.status)
-	screenHeight := max(1, m.appH-lipgloss.Height(input)-lipgloss.Height(status)-2)
+	keyRail := renderStatus(m.styles, m.keyHelp())
+	screenHeight := max(1, m.appH-lipgloss.Height(input)-lipgloss.Height(status)-lipgloss.Height(keyRail)-2)
 	screenStyles := theme.NewStyles(m.theme, m.appW, screenHeight)
 	screen := ""
 	switch m.screen {
@@ -159,8 +202,8 @@ func (m model) View() tea.View {
 	case screenHelp:
 		screen = screens.HelpView(screenStyles)
 
-	case screenProgram:
-		screen = screens.ProgramView(screenStyles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout, m.activeExercise, m.programCursor, m.workoutCursor, m.exerciseCursor)
+	case screenProgram, screenPrograms:
+		screen = screens.ProgramView(screenStyles, m.programs, m.workouts, m.exercises, m.activeProgram, m.activeWorkout, m.activeExercise, m.programCursor, m.workoutCursor, m.exerciseCursor, m.screen == screenPrograms)
 
 	case screenHistory:
 		screen = screens.HistoryView(screenStyles, m.activeWorkout, m.historyTitle, m.historySessions, m.historyCursor, m.activeSession, m.historyEntries)
@@ -173,7 +216,7 @@ func (m model) View() tea.View {
 		Width(m.styles.Box.GetWidth()).
 		MaxHeight(screenHeight).
 		Render(screen)
-	join := lipgloss.JoinVertical(lipgloss.Center, screen, input, status)
+	join := lipgloss.JoinVertical(lipgloss.Center, screen, input, status, keyRail)
 	box := m.styles.Box.Render(join)
 	v := tea.NewView(
 		utils.CenterPlace(m.termW, m.termH, box),

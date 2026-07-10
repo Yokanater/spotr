@@ -54,7 +54,6 @@ func (m *model) startEditSelectedInput() {
 		m.startEditLogEntryInput()
 		return
 	}
-	m.screen = screenProgram
 	switch m.currentLevel() {
 	case screenPrograms:
 		m.startEditProgramInput()

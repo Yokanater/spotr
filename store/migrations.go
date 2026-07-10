@@ -82,6 +82,15 @@ func (s *Store) init() error {
 		return err
 	}
 
+	if _, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS app_preferences (
+			id INTEGER PRIMARY KEY CHECK (id = 1),
+			active_program_id INTEGER REFERENCES programs(id) ON DELETE SET NULL
+		);
+		INSERT OR IGNORE INTO app_preferences (id, active_program_id) VALUES (1, NULL);`); err != nil {
+		return err
+	}
+
 	if err := s.migrate(); err != nil {
 		return err
 	}

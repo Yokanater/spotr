@@ -38,12 +38,13 @@ func (m *model) loadExercises(workout data.Workout) error {
 func (m *model) startAdd() {
 	m.mode = modeInput
 	m.input.SetValue("")
-	m.screen = screenProgram
 
-	switch {
-	case m.activeWorkout.WorkoutId != 0:
+	switch m.currentLevel() {
+	case screenPrograms:
+		m.startAddProgram()
+	case screenExercises:
 		m.startAddExercise()
-	case m.activeProgram.ProgramId != 0:
+	case screenWorkouts:
 		m.startAddWorkout()
 	default:
 		m.startAddProgram()

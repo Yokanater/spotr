@@ -126,6 +126,8 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 		m.viewRecentLogs()
 	case "t":
 		m.openTemplates()
+	case "p":
+		m.openProgramPicker()
 	case "f":
 		m.finishLogSession()
 	case "down", "j":
