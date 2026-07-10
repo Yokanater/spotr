@@ -10,6 +10,9 @@ func (m model) normalHelp() string {
 	if m.screen == screenHome {
 		return helperMessage("enter workouts", "p programs", "? help", "q quit")
 	}
+	if m.screen == screenHelp {
+		return helperMessage("b back")
+	}
 	if m.screen == screenPrograms {
 		if len(m.programs) == 0 {
 			return helperMessage("a add", "t templates", "b back", "? help")

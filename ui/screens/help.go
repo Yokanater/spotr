@@ -17,7 +17,6 @@ type helpRow struct {
 func HelpView(styles theme.Styles) string {
 	contentW := max(20, styles.Help.GetWidth()-helpChrome(styles))
 	title := styles.ProgramTitle.Width(contentW).Render("help")
-	subtitle := styles.ProgramSubtitle.Width(contentW).Render("shortcuts and command groups")
 
 	keys := make([]helpRow, 0, len(commands.KeyBindings))
 	for _, binding := range commands.KeyBindings {
@@ -26,61 +25,26 @@ func HelpView(styles theme.Styles) string {
 
 	commandRows := make([]helpRow, 0, len(commands.CommandsOrder))
 	for _, name := range commands.CommandsOrder {
-		commandRows = append(commandRows, helpRow{Label: ":" + name, Text: commandGroupSummary(name)})
+		commandRows = append(commandRows, helpRow{Label: ":" + name})
 	}
 
 	body := renderHelpBody(styles, contentW, keys, commandRows)
-	panel := styles.Help.Render(lipgloss.JoinVertical(lipgloss.Left, title, subtitle, "", body))
+	panel := styles.Help.Render(lipgloss.JoinVertical(lipgloss.Left, title, "", body))
 
 	return lipgloss.JoinVertical(
 		lipgloss.Center,
 		RenderHeader(styles, "help"),
-		"",
 		panel,
 	)
 }
 
-func commandGroupSummary(name string) string {
-	switch name {
-	case "help":
-		return "show this screen"
-	case "home":
-		return "go home"
-	case "program":
-		return "manage programs"
-	case "workout":
-		return "manage workouts"
-	case "exercise":
-		return "manage exercises"
-	case "log":
-		return "record training"
-	case "history":
-		return "browse sessions"
-	case "template":
-		return "manage templates"
-	case "quit":
-		return "exit spotr"
-	default:
-		return name
-	}
-}
-
 func renderHelpBody(styles theme.Styles, width int, keys []helpRow, commandRows []helpRow) string {
-	if width >= 76 {
+	if width >= 48 {
 		return lipgloss.JoinVertical(
 			lipgloss.Left,
 			renderKeyGrid(styles, "keys", keys, width, 3),
 			"",
-			renderKeyGrid(styles, "commands", commandRows, width, 3),
-		)
-	}
-
-	if width >= 48 {
-		return lipgloss.JoinVertical(
-			lipgloss.Left,
-			renderKeyGrid(styles, "keys", keys, width, 2),
-			"",
-			renderKeyGrid(styles, "commands", commandRows, width, 2),
+			renderCommandBar(styles, commandRows, width),
 		)
 	}
 
@@ -88,7 +52,22 @@ func renderHelpBody(styles theme.Styles, width int, keys []helpRow, commandRows 
 		lipgloss.Left,
 		renderKeySection(styles, "keys", keys, width),
 		"",
-		renderKeySection(styles, "commands", commandRows, width),
+		renderCommandBar(styles, commandRows, width),
+	)
+}
+
+func renderCommandBar(styles theme.Styles, rows []helpRow, width int) string {
+	visible := []string{}
+	for _, row := range rows {
+		switch row.Label {
+		case ":program", ":workout", ":exercise", ":log", ":history", ":template":
+			visible = append(visible, row.Label)
+		}
+	}
+	return lipgloss.JoinVertical(
+		lipgloss.Left,
+		styles.SectionTitle.Width(width).Render("commands"),
+		styles.HelpKey.Width(width).Render(strings.Join(visible, "  ")),
 	)
 }
 
@@ -137,13 +116,28 @@ func renderCompactKeySection(styles theme.Styles, title string, rows []helpRow, 
 	if title != "" {
 		lines = append(lines, styles.SectionTitle.Width(width).Render(title))
 	}
+	labelW := 11
+	if width < 22 {
+		labelW = max(6, width/2)
+	}
+	textW := max(4, width-labelW-1)
 	for _, row := range rows {
-		lines = append(lines,
-			styles.HelpKey.Width(width).MaxWidth(width).Render(row.Label),
-			styles.HelpText.Width(width).MaxWidth(width).Render(row.Text),
-		)
+		label := styles.HelpKey.Width(labelW).Render(compactHelpText(row.Label, labelW))
+		text := styles.HelpText.Width(textW).Render(compactHelpText(row.Text, textW))
+		lines = append(lines, lipgloss.JoinHorizontal(lipgloss.Top, label, " ", text))
 	}
 	return lipgloss.NewStyle().Width(width).Render(lipgloss.JoinVertical(lipgloss.Left, lines...))
+}
+
+func compactHelpText(value string, width int) string {
+	runes := []rune(value)
+	if len(runes) <= width {
+		return value
+	}
+	if width <= 1 {
+		return "…"
+	}
+	return string(runes[:width-1]) + "…"
 }
 
 func joinWithGap(blocks []string, gap int) []string {

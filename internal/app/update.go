@@ -144,7 +144,7 @@ func (m model) handleNormalKey(msg tea.KeyPressMsg) (tea.Model, tea.Cmd) {
 	case "?":
 		m.helpReturnScreen = m.screen
 		m.screen = screenHelp
-		m.status = "All shortcuts"
+		m.status = ""
 	case "home":
 		m.goHome()
 	case "b", "esc":

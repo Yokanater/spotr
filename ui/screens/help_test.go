@@ -13,7 +13,7 @@ func TestHelpViewIncludesCommandGroups(t *testing.T) {
 	styles := theme.NewStyles(theme.Default(), 100, 30)
 	view := HelpView(styles)
 
-	for _, want := range []string{":exercise", ":log", ":template", "record training"} {
+	for _, want := range []string{":program", ":exercise", ":log", ":template"} {
 		if !strings.Contains(view, want) {
 			t.Fatalf("HelpView() did not include %q; view:\n%s", want, view)
 		}
@@ -40,5 +40,15 @@ func TestHelpViewResponsiveWidths(t *testing.T) {
 				t.Fatalf("HelpView(%d) line width = %d, want <= %d:\n%s", width, got, limit, line)
 			}
 		}
+	}
+}
+
+func TestCompactHelpRowsStayOnOneLine(t *testing.T) {
+	styles := theme.NewStyles(theme.Default(), 64, 30)
+	rows := []helpRow{{Label: "enter", Text: "open"}, {Label: "v", Text: "view graph"}}
+	view := renderCompactKeySection(styles, "keys", rows, 30)
+
+	if got := len(strings.Split(view, "\n")); got != 3 {
+		t.Fatalf("compact help lines = %d; want title plus one line per shortcut:\n%s", got, view)
 	}
 }

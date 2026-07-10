@@ -133,7 +133,7 @@ func initialModel(st *store.Store) model {
 		if err := m.restoreActiveProgram(); err != nil {
 			m.status = err.Error()
 		} else if m.activeProgram.ProgramId != 0 {
-			m.status = "Ready. Open workouts to continue your program."
+			m.status = ""
 		} else {
 			m.status = "Start with a template or create your first program."
 		}

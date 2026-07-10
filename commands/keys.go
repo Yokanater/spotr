@@ -7,7 +7,7 @@ type KeyBinding struct {
 
 var KeyBindings = []KeyBinding{
 	{
-		Key:    "↑/↓ or k/j",
+		Key:    "↑/↓ k/j",
 		Action: "move",
 	},
 	{
@@ -20,7 +20,7 @@ var KeyBindings = []KeyBinding{
 	},
 	{
 		Key:    "s",
-		Action: "start session",
+		Action: "start",
 	},
 	{
 		Key:    "l",
@@ -28,7 +28,7 @@ var KeyBindings = []KeyBinding{
 	},
 	{
 		Key:    "v",
-		Action: "view graph or logs",
+		Action: "graph/logs",
 	},
 	{
 		Key:    "t",
@@ -40,7 +40,7 @@ var KeyBindings = []KeyBinding{
 	},
 	{
 		Key:    "f",
-		Action: "finish session",
+		Action: "finish",
 	},
 	{
 		Key:    "e",
