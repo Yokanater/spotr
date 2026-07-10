@@ -8,7 +8,10 @@ import (
 
 func (m model) normalHelp() string {
 	if m.screen == screenHome {
-		return helperMessage("enter workouts", "p programs", "? help", "q quit")
+		if len(m.programs) == 0 {
+			return helperMessage("a start", "t template", "? help", "q quit")
+		}
+		return helperMessage("↑/↓ move", "enter open", "a create", "t templates", "? help")
 	}
 	if m.screen == screenHelp {
 		return helperMessage("b back")

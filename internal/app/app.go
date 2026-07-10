@@ -135,7 +135,7 @@ func initialModel(st *store.Store) model {
 		} else if m.activeProgram.ProgramId != 0 {
 			m.status = ""
 		} else {
-			m.status = "Start with a template or create your first program."
+			m.status = ""
 		}
 	}
 	return m
@@ -198,7 +198,7 @@ func (m model) View() tea.View {
 	screen := ""
 	switch m.screen {
 	case screenHome:
-		screen = screens.HomeView(screenStyles)
+		screen = screens.HomeView(screenStyles, m.programs, m.programCursor, m.activeProgram)
 
 	case screenHelp:
 		screen = screens.HelpView(screenStyles)
