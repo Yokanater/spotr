@@ -1,6 +1,14 @@
 # spotr
 
-Workout logging for nerds on the terminal
+Workout logging for nerds on the terminal.
+
+[Website](https://spotr.info) · [Releases](https://github.com/Yokanater/spotr/releases/latest) · [Report a bug](https://github.com/Yokanater/spotr/issues/new?template=bug.yml)
+
+![spotr home screen](web/public/spotr-tui.png)
+
+spotr is a keyboard-first, local workout tracker. Build programs, run workouts,
+log sets, and review your training history without an account or an internet
+connection. Your data stays in a SQLite database on your computer.
 
 ## Install
 
@@ -11,101 +19,86 @@ brew tap Yokanater/tap
 brew install --cask spotr
 ```
 
-### Binaries
-
-Download the archive for your system from the latest GitHub release:
-
-- macOS Apple Silicon: `spotr_Darwin_arm64.tar.gz`
-- macOS Intel: `spotr_Darwin_x86_64.tar.gz`
-- Linux x86_64: `spotr_Linux_x86_64.tar.gz`
-- Linux ARM64: `spotr_Linux_arm64.tar.gz`
-- Windows x86_64: `spotr_Windows_x86_64.zip`
-- Windows ARM64: `spotr_Windows_arm64.zip`
-
-macOS/Linux:
+### Go
 
 ```bash
-tar -xzf spotr_*.tar.gz
-./spotr
+go install github.com/Yokanater/spotr@latest
 ```
 
-Windows PowerShell:
+### Prebuilt binaries
 
-```powershell
-Expand-Archive .\spotr_Windows_x86_64.zip
-.\spotr_Windows_x86_64\spotr.exe
-```
+Download the archive for your system from the [latest GitHub release](https://github.com/Yokanater/spotr/releases/latest):
 
-## Run
+- macOS: Apple Silicon and Intel
+- Linux: x86-64 and ARM64
+- Windows: x86-64 and ARM64
+
+Extract the archive and place `spotr` (or `spotr.exe`) somewhere on your
+`PATH`. Release checksums are published alongside every build.
+
+## Use
+
+Run:
 
 ```bash
-go run .
+spotr
 ```
 
-spotr writes to `spotr.db` in the current directory.
+Press `?` at any time to open the complete in-app help. The core controls are:
 
-## Test
-
-```bash
-go test ./...
-```
-
-## Core Keys
-
-- `↑` / `↓` or `k` / `j`: move
-- `enter`: open selected item
+- `j` / `k` or arrow keys: move
+- `enter`: open the selected item
 - `a`: add
-- `p`: switch or manage programs
-- `s`: start workout log
+- `s`: start a workout
 - `l`: log an exercise
 - `v`: view logs
-- `f`: finish workout log
+- `f`: finish a workout
 - `e`: edit
 - `d`: delete with confirmation
 - `t`: browse templates
 - `b` / `esc`: back
 - `:`: command mode
-- `?`: help
 - `q`: quit with confirmation
 
-Spotr remembers the active program and opens its workouts directly the next
-time it runs. Programs stay available through `p` when you want to switch or
-manage them.
+## Data and backups
+
+spotr stores `spotr.db` in your operating system's user data directory:
+
+- macOS: `~/Library/Application Support/spotr/spotr.db`
+- Linux: `$XDG_DATA_HOME/spotr/spotr.db`, or `~/.local/share/spotr/spotr.db`
+- Windows: `%LOCALAPPDATA%\spotr\spotr.db`
+
+Set `SPOTR_DATA_DIR` or launch with `spotr --data-dir <directory>` to choose a
+different location. To back up your data, quit spotr and copy `spotr.db`.
+
+Versions before v0.2 stored `spotr.db` in the directory from which spotr was
+launched. To migrate, quit spotr and copy that file to the location above, or
+keep using its directory with `--data-dir`.
 
 ## Templates
 
-Templates are JSON program definitions stored in `templates/programs/`.
-Use them to start a program from a shared workout template, or export your own
-program as a template file.
+Bundled JSON program templates live in [`templates/programs`](templates/programs).
+Press `t` to browse and import them. Set `SPOTR_TEMPLATE_DIR` to use a custom
+template directory.
 
-Press `t` in normal mode to browse templates with `j` / `k`, then press
-`enter` to import the selected template as a program.
+Community templates are welcome. See [`templates/README.md`](templates/README.md)
+and [`templates/schema/program-template.schema.json`](templates/schema/program-template.schema.json),
+then open a pull request with your template under `templates/programs/`.
 
-Set `SPOTR_TEMPLATE_DIR` to browse, import, export, and validate templates from
-a custom directory.
+## Development
 
-Command mode supports:
+Requires Go 1.26 or newer.
 
-```text
-template list
-template show <name|path>
-template import <name|path>
-template workout <template> <workout>
-template export [program] [path]
-template validate [name|path]
+```bash
+git clone https://github.com/Yokanater/spotr.git
+cd spotr
+go test ./...
+go run . --data-dir "$(mktemp -d)"
 ```
 
-Examples:
+See [CONTRIBUTING.md](CONTRIBUTING.md) before opening a pull request. Security
+issues should be reported as described in [SECURITY.md](SECURITY.md).
 
-```text
-:template list
-:template show Push Pull Legs
-:template import Push Pull Legs
-:template workout Push Pull Legs Push
-:template export Push Pull Legs templates/programs/my-ppl.json
-:template validate
-```
+## License
 
-Community templates can be added by opening a PR with a JSON file under
-`templates/programs/`. See `templates/README.md` and
-`templates/schema/program-template.schema.json`. PRs will run `go test ./...` in CI
+[MIT](LICENSE)

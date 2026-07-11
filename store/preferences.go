@@ -1,7 +1,7 @@
 package store
 
 import (
-	"spotr/data"
+	"github.com/Yokanater/spotr/data"
 )
 
 func (s *Store) ActiveProgram() (data.Program, error) {

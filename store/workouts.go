@@ -2,8 +2,8 @@ package store
 
 import (
 	"database/sql"
-	"spotr/data"
-	"spotr/utils"
+	"github.com/Yokanater/spotr/data"
+	"github.com/Yokanater/spotr/utils"
 	"time"
 )
 

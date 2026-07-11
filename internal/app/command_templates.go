@@ -3,7 +3,7 @@ package app
 import (
 	"fmt"
 	"path/filepath"
-	"spotr/data"
+	"github.com/Yokanater/spotr/data"
 	"strings"
 )
 

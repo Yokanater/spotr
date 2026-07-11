@@ -1,8 +1,22 @@
 import { createFileRoute } from '@tanstack/react-router'
+import { useState } from 'react'
 
 export const Route = createFileRoute('/')({ component: Home })
 
 function Home() {
+  const installCommand = 'brew install --cask Yokanater/tap/spotr'
+  const [copied, setCopied] = useState(false)
+
+  async function copyInstallCommand() {
+    try {
+      await navigator.clipboard.writeText(installCommand)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1600)
+    } catch {
+      // The command remains selectable when clipboard access is unavailable.
+    }
+  }
+
   return (
     <main className="landing" id="top">
       <header className="site-header">
@@ -22,14 +36,19 @@ function Home() {
             Track programs, run workouts, and keep your training history without leaving the terminal.
           </p>
 
-          <div className="install" aria-label="Homebrew install command">
-            <span className="prompt">$</span>
-            <code>brew install --cask spotr</code>
+          <div className="install">
+            <div className="install-command" aria-label="Homebrew install command">
+              <span className="prompt">$</span>
+              <code>{installCommand}</code>
+            </div>
+            <button type="button" onClick={copyInstallCommand} aria-live="polite">
+              {copied ? 'copied' : 'copy'}
+            </button>
           </div>
 
           <div className="actions">
-            <a className="primary-action" href="https://github.com/Yokanater/spotr" target="_blank" rel="noreferrer">
-              get spotr <span>↗</span>
+            <a className="primary-action" href="https://github.com/Yokanater/spotr/releases/latest" target="_blank" rel="noreferrer">
+              download spotr <span>↗</span>
             </a>
             <span className="platforms">macOS · Linux · Windows</span>
           </div>
@@ -45,7 +64,7 @@ function Home() {
 
       <footer>
         <span>your first workout starts here</span>
-        <span>open source · built in go</span>
+        <span>open source · local data · built in go</span>
       </footer>
     </main>
   )

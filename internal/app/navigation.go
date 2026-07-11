@@ -1,6 +1,6 @@
 package app
 
-import "spotr/data"
+import "github.com/Yokanater/spotr/data"
 
 func (m *model) moveCursor(delta int) {
 	if m.screen == screenHome {

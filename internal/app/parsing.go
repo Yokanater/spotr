@@ -2,7 +2,7 @@ package app
 
 import (
 	"fmt"
-	"spotr/data"
+	"github.com/Yokanater/spotr/data"
 	"strconv"
 	"strings"
 )

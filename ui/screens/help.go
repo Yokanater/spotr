@@ -3,8 +3,8 @@ package screens
 import (
 	"strings"
 
-	"spotr/commands"
-	"spotr/ui/theme"
+	"github.com/Yokanater/spotr/commands"
+	"github.com/Yokanater/spotr/ui/theme"
 
 	"charm.land/lipgloss/v2"
 )

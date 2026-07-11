@@ -5,11 +5,11 @@ import (
 	tea "charm.land/bubbletea/v2"
 	"charm.land/lipgloss/v2"
 	"database/sql"
-	"spotr/data"
-	"spotr/store"
-	"spotr/ui/screens"
-	"spotr/ui/theme"
-	"spotr/ui/utils"
+	"github.com/Yokanater/spotr/data"
+	"github.com/Yokanater/spotr/store"
+	"github.com/Yokanater/spotr/ui/screens"
+	"github.com/Yokanater/spotr/ui/theme"
+	"github.com/Yokanater/spotr/ui/utils"
 )
 
 type mode string

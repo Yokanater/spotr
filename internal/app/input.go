@@ -1,7 +1,7 @@
 package app
 
 import (
-	"spotr/data"
+	"github.com/Yokanater/spotr/data"
 	"strings"
 )
 

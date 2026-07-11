@@ -1,4 +1,4 @@
-module spotr
+module github.com/Yokanater/spotr
 
 go 1.26.2
 

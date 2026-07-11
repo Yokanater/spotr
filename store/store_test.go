@@ -6,7 +6,7 @@ import (
 	"strings"
 	"testing"
 
-	"spotr/data"
+	"github.com/Yokanater/spotr/data"
 
 	_ "modernc.org/sqlite"
 )

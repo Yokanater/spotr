@@ -13,11 +13,31 @@ export const Route = createRootRoute({
         content: 'width=device-width, initial-scale=1',
       },
       {
-        title: 'spotr',
+        title: 'spotr — workout logging for nerds',
       },
       {
         name: 'description',
-        content: 'lift logging for nerds',
+        content: 'A keyboard-first, local workout tracker for the terminal. Available for macOS, Linux, and Windows.',
+      },
+      {
+        property: 'og:title',
+        content: 'spotr — workout logging for nerds',
+      },
+      {
+        property: 'og:description',
+        content: 'Track programs, run workouts, and own your training history without leaving the terminal.',
+      },
+      {
+        property: 'og:image',
+        content: 'https://spotr.info/spotr-tui.png',
+      },
+      {
+        property: 'og:url',
+        content: 'https://spotr.info/',
+      },
+      {
+        name: 'twitter:card',
+        content: 'summary_large_image',
       },
     ],
     links: [
@@ -29,6 +49,10 @@ export const Route = createRootRoute({
         rel: 'icon',
         type: 'image/svg+xml',
         href: '/favicon.svg',
+      },
+      {
+        rel: 'canonical',
+        href: 'https://spotr.info/',
       },
     ],
   }),

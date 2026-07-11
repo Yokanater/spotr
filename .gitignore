@@ -1,2 +1,5 @@
 spotr.db
 dist/
+web/node_modules/
+web/.vercel/
+.DS_Store

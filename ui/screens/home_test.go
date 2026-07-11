@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"spotr/data"
-	"spotr/ui/theme"
+	"github.com/Yokanater/spotr/data"
+	"github.com/Yokanater/spotr/ui/theme"
 
 	"charm.land/lipgloss/v2"
 )

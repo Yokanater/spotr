@@ -1,6 +1,6 @@
 package app
 
-import "spotr/data"
+import "github.com/Yokanater/spotr/data"
 
 func (m *model) requestDeleteSelected() {
 	if m.screen == screenHistory {

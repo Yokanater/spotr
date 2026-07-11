@@ -2,7 +2,7 @@ package app
 
 import (
 	"charm.land/lipgloss/v2"
-	"spotr/ui/theme"
+	"github.com/Yokanater/spotr/ui/theme"
 	"strings"
 )
 

@@ -3,7 +3,7 @@ package store
 import (
 	"database/sql"
 	"fmt"
-	"spotr/data"
+	"github.com/Yokanater/spotr/data"
 	"time"
 )
 

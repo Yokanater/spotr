@@ -4,8 +4,8 @@ import (
 	"charm.land/bubbles/v2/textinput"
 	"os"
 	"path/filepath"
-	"spotr/data"
-	"spotr/store"
+	"github.com/Yokanater/spotr/data"
+	"github.com/Yokanater/spotr/store"
 	"strings"
 	"testing"
 

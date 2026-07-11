@@ -8,8 +8,8 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
-	"spotr/data"
-	"spotr/ui/screens"
+	"github.com/Yokanater/spotr/data"
+	"github.com/Yokanater/spotr/ui/screens"
 	"strings"
 )
 
